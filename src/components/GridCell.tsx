@@ -8,6 +8,7 @@ interface GridCellProps<TData> {
   cell: Cell<TData, unknown>;
   rowIndex: number;
   density: GridDensity;
+  alignment?: 'left' | 'center' | 'right';
   onCellClick?: (cell: Cell<TData, unknown>, event: React.MouseEvent) => void;
   onCellDoubleClick?: (cell: Cell<TData, unknown>, event: React.MouseEvent) => void;
   onCellValueChanged?: (cell: Cell<TData, unknown>, oldValue: any, newValue: any) => void;
@@ -17,6 +18,7 @@ export const GridCell = React.memo(function GridCell<TData>({
   cell,
   rowIndex,
   density,
+  alignment,
   onCellClick,
   onCellDoubleClick,
   onCellValueChanged,
@@ -56,12 +58,17 @@ export const GridCell = React.memo(function GridCell<TData>({
   }, [meta, value, row.original, colDef, rowIndex]);
 
   const cellStyle = useMemo(() => {
-    if (!meta?.cellStyle) return undefined;
-    if (typeof meta.cellStyle === 'function') {
-      return meta.cellStyle({ value, data: row.original, colDef: colDef || ({} as any), rowIndex });
+    let style: any = undefined;
+    if (meta?.cellStyle) {
+      style = typeof meta.cellStyle === 'function'
+        ? meta.cellStyle({ value, data: row.original, colDef: colDef || ({} as any), rowIndex })
+        : meta.cellStyle;
     }
-    return meta.cellStyle;
-  }, [meta, value, row.original, colDef, rowIndex]);
+    if (alignment) {
+      style = { ...style, textAlign: alignment };
+    }
+    return style;
+  }, [meta, value, row.original, colDef, rowIndex, alignment]);
 
   const cellClassName = useMemo(() => {
     if (!meta?.cellClass) return '';

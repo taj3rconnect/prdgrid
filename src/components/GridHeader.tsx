@@ -6,9 +6,10 @@ import { reorderColumn } from '../core/gridUtils';
 interface GridHeaderProps<TData> {
   table: Table<TData>;
   showSelectionColumn: boolean;
+  columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
 }
 
-export function GridHeader<TData>({ table, showSelectionColumn }: GridHeaderProps<TData>) {
+export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment }: GridHeaderProps<TData>) {
   const [dragColumnId, setDragColumnId] = useState<string | null>(null);
   const [dropColumnId, setDropColumnId] = useState<string | null>(null);
 
@@ -53,6 +54,7 @@ export function GridHeader<TData>({ table, showSelectionColumn }: GridHeaderProp
             <HeaderCell
               key={header.id}
               header={header}
+              alignment={columnAlignment?.[header.column.id]}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}

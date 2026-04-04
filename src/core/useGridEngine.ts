@@ -220,6 +220,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
   });
 
   const [density, setDensity] = useState<GridDensity>(propDensity);
+  const [columnAlignment, setColumnAlignment] = useState<Record<string, 'left' | 'center' | 'right'>>({});
   const pageSize = persisted?.pageSize || paginationPageSize;
 
   // ─── Map columns ───
@@ -331,6 +332,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     rowSelectionState,
     columnPinning,
     density,
+    columnAlignment,
     setSorting,
     setColumnFilters,
     setGlobalFilter,
@@ -342,6 +344,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     setRowSelectionState,
     setColumnPinning,
     setDensity,
+    setColumnAlignment,
     resetState,
   };
 }

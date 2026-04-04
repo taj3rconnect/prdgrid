@@ -70,6 +70,8 @@ function DataGridInner<TData = any>(
     setGrouping,
     density,
     setDensity,
+    columnAlignment,
+    setColumnAlignment,
     resetState,
   } = engine;
 
@@ -263,13 +265,14 @@ function DataGridInner<TData = any>(
 
       <div className="flex-1 overflow-auto">
         <table className="jt-table w-full border-collapse text-grid-base">
-          <GridHeader table={table} showSelectionColumn={showSelectionColumn} />
+          <GridHeader table={table} showSelectionColumn={showSelectionColumn} columnAlignment={columnAlignment} />
           {floatingFilters && (
             <FloatingFilter table={table} showSelectionColumn={showSelectionColumn} />
           )}
           <GridBody
             table={table}
             density={density}
+            columnAlignment={columnAlignment}
             noRowsComponent={noRowsComponent}
             noRowsMessage={noRowsMessage}
             onCellClick={handleCellClick}
@@ -291,6 +294,10 @@ function DataGridInner<TData = any>(
         table={table}
         isOpen={showColumnManager}
         onClose={() => setShowColumnManager(false)}
+        columnAlignment={columnAlignment}
+        onColumnAlignmentChange={(colId, align) =>
+          setColumnAlignment(prev => ({ ...prev, [colId]: align }))
+        }
       />
     </div>
   );

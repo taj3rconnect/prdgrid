@@ -9,6 +9,7 @@ interface GridRowProps<TData> {
   row: Row<TData>;
   rowIndex: number;
   density: GridDensity;
+  columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
   striped: boolean;
   onCellClick?: (cell: any, event: React.MouseEvent) => void;
   onCellDoubleClick?: (cell: any, event: React.MouseEvent) => void;
@@ -19,6 +20,7 @@ export const GridRow = React.memo(function GridRow<TData>({
   row,
   rowIndex,
   density,
+  columnAlignment,
   striped,
   onCellClick,
   onCellDoubleClick,
@@ -73,6 +75,7 @@ export const GridRow = React.memo(function GridRow<TData>({
           cell={cell}
           rowIndex={rowIndex}
           density={density}
+          alignment={columnAlignment?.[cell.column.id]}
           onCellClick={onCellClick}
           onCellDoubleClick={onCellDoubleClick}
           onCellValueChanged={onCellValueChanged}

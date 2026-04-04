@@ -3,13 +3,25 @@ import { Table } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 import { reorderColumn, getColumnHeader } from '../core/gridUtils';
 
+type Alignment = 'left' | 'center' | 'right';
+
 interface ColumnManagerProps<TData> {
   table: Table<TData>;
   isOpen: boolean;
   onClose: () => void;
+  columnAlignment: Record<string, Alignment>;
+  onColumnAlignmentChange: (colId: string, align: Alignment) => void;
 }
 
-export function ColumnManager<TData>({ table, isOpen, onClose }: ColumnManagerProps<TData>) {
+const alignOptions: { value: Alignment; icon: string; title: string }[] = [
+  { value: 'left', icon: '≡', title: 'Align left' },
+  { value: 'center', icon: '≡', title: 'Align center' },
+  { value: 'right', icon: '≡', title: 'Align right' },
+];
+
+export function ColumnManager<TData>({
+  table, isOpen, onClose, columnAlignment, onColumnAlignmentChange,
+}: ColumnManagerProps<TData>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dragItem, setDragItem] = useState<string | null>(null);
   const [dragOverItem, setDragOverItem] = useState<string | null>(null);
@@ -34,7 +46,7 @@ export function ColumnManager<TData>({ table, isOpen, onClose }: ColumnManagerPr
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
       <div
-        className="mt-12 mr-4 w-72 max-h-[70vh] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl flex flex-col"
+        className="mt-12 mr-4 w-80 max-h-[70vh] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -77,6 +89,7 @@ export function ColumnManager<TData>({ table, isOpen, onClose }: ColumnManagerPr
             if (meta?.colDef?.lockVisible) return null;
 
             const header = getColumnHeader(column);
+            const currentAlign = columnAlignment[column.id] || 'left';
 
             return (
               <div
@@ -108,6 +121,31 @@ export function ColumnManager<TData>({ table, isOpen, onClose }: ColumnManagerPr
                   onChange={column.getToggleVisibilityHandler()}
                 />
                 <span className="flex-1 truncate text-grid-text">{header}</span>
+
+                {/* Alignment controls */}
+                <div className="flex items-center border border-gray-200 rounded overflow-hidden">
+                  {alignOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      className={clsx(
+                        'px-1.5 py-0.5 text-[10px] leading-none',
+                        currentAlign === opt.value
+                          ? 'bg-grid-accent text-white'
+                          : 'text-gray-400 hover:bg-gray-100'
+                      )}
+                      onClick={() => onColumnAlignmentChange(column.id, opt.value)}
+                      title={opt.title}
+                    >
+                      {opt.value === 'left' ? (
+                        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0" y="1" width="10" height="1.5" fill="currentColor" rx="0.5"/><rect x="0" y="4.5" width="7" height="1.5" fill="currentColor" rx="0.5"/><rect x="0" y="8" width="9" height="1.5" fill="currentColor" rx="0.5"/></svg>
+                      ) : opt.value === 'center' ? (
+                        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0" y="1" width="10" height="1.5" fill="currentColor" rx="0.5"/><rect x="1.5" y="4.5" width="7" height="1.5" fill="currentColor" rx="0.5"/><rect x="0.5" y="8" width="9" height="1.5" fill="currentColor" rx="0.5"/></svg>
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0" y="1" width="10" height="1.5" fill="currentColor" rx="0.5"/><rect x="3" y="4.5" width="7" height="1.5" fill="currentColor" rx="0.5"/><rect x="1" y="8" width="9" height="1.5" fill="currentColor" rx="0.5"/></svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
 
                 {/* Pin controls */}
                 <button

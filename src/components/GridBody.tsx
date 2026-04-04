@@ -6,6 +6,7 @@ import type { GridDensity } from '../types';
 interface GridBodyProps<TData> {
   table: Table<TData>;
   density: GridDensity;
+  columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
   noRowsComponent?: React.ComponentType;
   noRowsMessage?: string;
   onCellClick?: (cell: any, event: React.MouseEvent) => void;
@@ -16,6 +17,7 @@ interface GridBodyProps<TData> {
 export function GridBody<TData>({
   table,
   density,
+  columnAlignment,
   noRowsComponent: NoRowsComp,
   noRowsMessage,
   onCellClick,
@@ -66,6 +68,7 @@ export function GridBody<TData>({
           row={row}
           rowIndex={index}
           density={density}
+          columnAlignment={columnAlignment}
           striped={index % 2 === 1}
           onCellClick={onCellClick}
           onCellDoubleClick={onCellDoubleClick}

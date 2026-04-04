@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 
 interface HeaderCellProps<TData> {
   header: Header<TData, unknown>;
+  alignment?: 'left' | 'center' | 'right';
   onDragStart?: (columnId: string) => void;
   onDragOver?: (columnId: string) => void;
   onDragEnd?: () => void;
@@ -11,6 +12,7 @@ interface HeaderCellProps<TData> {
 
 export function HeaderCell<TData>({
   header,
+  alignment,
   onDragStart,
   onDragOver,
   onDragEnd,
@@ -55,9 +57,13 @@ export function HeaderCell<TData>({
         width: header.getSize(),
         minWidth: column.columnDef.minSize,
         maxWidth: column.columnDef.maxSize,
-        ...(meta?.cellStyle && typeof meta.cellStyle === 'function'
-          ? (() => { const s = meta.cellStyle({}); return s?.textAlign ? { textAlign: s.textAlign } : undefined; })()
-          : meta?.cellStyle?.textAlign ? { textAlign: meta.cellStyle.textAlign } : undefined),
+        textAlign: alignment || (() => {
+          if (meta?.cellStyle && typeof meta.cellStyle === 'function') {
+            const s = meta.cellStyle({});
+            return s?.textAlign;
+          }
+          return meta?.cellStyle?.textAlign;
+        })(),
       }}
       title={meta?.headerTooltip}
       draggable={!meta?.colDef?.suppressMovable}
