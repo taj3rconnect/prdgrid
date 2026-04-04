@@ -55,6 +55,9 @@ export function HeaderCell<TData>({
         width: header.getSize(),
         minWidth: column.columnDef.minSize,
         maxWidth: column.columnDef.maxSize,
+        ...(meta?.cellStyle && typeof meta.cellStyle === 'function'
+          ? (() => { const s = meta.cellStyle({}); return s?.textAlign ? { textAlign: s.textAlign } : undefined; })()
+          : meta?.cellStyle?.textAlign ? { textAlign: meta.cellStyle.textAlign } : undefined),
       }}
       title={meta?.headerTooltip}
       draggable={!meta?.colDef?.suppressMovable}
