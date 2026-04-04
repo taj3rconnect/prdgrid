@@ -28,10 +28,11 @@ export interface HREmployee {
   currency: string;
   paymentMethod: 'Bank Transfer' | 'Cash' | 'Check';
   paymentStatus: 'Paid' | 'Pending';
-  manager: string;
+  managerId: number | null;
   level: number;
   initials: string;
   avatarColor: string;
+  childCount: number;
 }
 
 const avatarColors = [
@@ -87,33 +88,125 @@ function getInitials(name: string): string {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export function generateHREmployees(count: number = 56): HREmployee[] {
-  const managers = hrNames.slice(0, 4);
-  return Array.from({ length: count }, (_, i) => {
-    const name = hrNames[i % hrNames.length]!;
-    const dept = departments[i % departments.length]!;
-    const loc = hrLocations[i % hrLocations.length]!;
-    const level = i < 4 ? 0 : i < 13 ? 1 : i < 28 ? 2 : 3;
-    const titles = titlesByLevel[level]!;
-    return {
-      id: 100000 + i,
+export function generateHREmployees(): HREmployee[] {
+  // Build a realistic org tree: 3 executives -> managers -> leads -> employees
+  const employees: HREmployee[] = [];
+  let nextId = 1;
+
+  function addEmployee(
+    name: string, title: string, dept: string, level: number, managerId: number | null
+  ): number {
+    const id = nextId++;
+    const loc = hrLocations[id % hrLocations.length]!;
+    employees.push({
+      id,
       name,
-      jobTitle: titles[i % titles.length]!,
+      jobTitle: title,
       department: dept,
-      employmentType: Math.random() > 0.3 ? 'Permanent' as const : 'Contract' as const,
+      employmentType: Math.random() > 0.3 ? 'Permanent' : 'Contract',
       location: loc.name,
       flag: loc.flag,
       joinDate: randomDate(2000, 2025),
-      salary: Math.round((2500 + Math.random() * 12000) * 100) / 100,
-      currency: ['USD', 'EUR', 'GBP'][i % 3]!,
+      salary: Math.round((3000 + Math.random() * 12000) * 100) / 100,
+      currency: ['USD', 'EUR', 'GBP'][id % 3]!,
       paymentMethod: randomFrom(['Bank Transfer', 'Cash', 'Check'] as const),
-      paymentStatus: Math.random() > 0.2 ? 'Paid' as const : 'Pending' as const,
-      manager: level === 0 ? '' : managers[i % managers.length]!,
+      paymentStatus: Math.random() > 0.2 ? 'Paid' : 'Pending',
+      managerId,
       level,
       initials: getInitials(name),
-      avatarColor: avatarColors[i % avatarColors.length]!,
-    };
-  });
+      avatarColor: avatarColors[id % avatarColors.length]!,
+      childCount: 0,
+    });
+    return id;
+  }
+
+  // Level 0: Executives
+  const coo = addEmployee('Adrian Conner', 'COO', 'Executive Management', 0, null);
+  const cto = addEmployee('Cheryl Browning', 'CTO', 'Executive Management', 0, null);
+  const cfo = addEmployee('Shawn Hendrix', 'CFO', 'Executive Management', 0, null);
+
+  // Level 1: Directors under COO
+  const supportDir = addEmployee('Bryan Hawkins', 'Support Director', 'Customer Support', 1, coo);
+  const opsDir = addEmployee('Gregory Walker', 'Operations Manager', 'Operations', 1, coo);
+  const hrDir = addEmployee('Clayton Conway', 'HR Director', 'Human Resources', 1, coo);
+
+  // Level 1: Directors under CTO
+  const engMgr = addEmployee('Chris Bruce', 'Engineering Manager', 'Engineering', 1, cto);
+  const designDir = addEmployee('Deborah Morales', 'Design Director', 'Design', 1, cto);
+  const prodVP = addEmployee('Amy Rojas', 'VP Product', 'Product', 1, cto);
+
+  // Level 1: Directors under CFO
+  const finDir = addEmployee('Ian Kramer', 'Finance Director', 'Finance', 1, cfo);
+  const legalDir = addEmployee('Dr. Janice Rice', 'General Counsel', 'Legal', 1, cfo);
+
+  // Level 2: Team leads under Support Director
+  const supLead1 = addEmployee('Andrew Ford', 'Support Lead', 'Customer Support', 2, supportDir);
+  const supLead2 = addEmployee('Bradley Johnson', 'Support Lead', 'Customer Support', 2, supportDir);
+
+  // Level 3: Employees under support leads
+  addEmployee('Wei Chen', 'Support Agent', 'Customer Support', 3, supLead1);
+  addEmployee('Priya Patel', 'Support Agent', 'Customer Support', 3, supLead1);
+  addEmployee('Sofia Romano', 'Support Agent', 'Customer Support', 3, supLead1);
+  addEmployee('Ahmed Khan', 'Support Agent', 'Customer Support', 3, supLead2);
+  addEmployee('Yuki Watanabe', 'Support Agent', 'Customer Support', 3, supLead2);
+
+  // Level 2: Team leads under Engineering Manager
+  const engLead1 = addEmployee('David Mitchell', 'Staff Engineer', 'Engineering', 2, engMgr);
+  const engLead2 = addEmployee('Sandra Cooper', 'Senior Engineer', 'Engineering', 2, engMgr);
+
+  // Level 3: Engineers
+  addEmployee('Carlos Mendez', 'Software Engineer', 'Engineering', 3, engLead1);
+  addEmployee('Liam O\'Brien', 'Software Engineer', 'Engineering', 3, engLead1);
+  addEmployee('Emma Dupont', 'DevOps Engineer', 'Engineering', 3, engLead1);
+  addEmployee('Noah Mueller', 'Software Engineer', 'Engineering', 3, engLead2);
+  addEmployee('Chloe Larsson', 'QA Lead', 'Engineering', 3, engLead2);
+  addEmployee('Raj Sharma', 'Software Engineer', 'Engineering', 3, engLead2);
+
+  // Level 2: Under Design Director
+  const uxLead = addEmployee('Laura Evans', 'UX Lead', 'Design', 2, designDir);
+  addEmployee('Pavel Novak', 'UI Designer', 'Design', 3, uxLead);
+  addEmployee('Aisha Okafor', 'UI Designer', 'Design', 3, uxLead);
+
+  // Level 2: Under VP Product
+  addEmployee('Jennifer Scott', 'Product Manager', 'Product', 2, prodVP);
+  addEmployee('Thomas Murphy', 'Product Analyst', 'Product', 2, prodVP);
+
+  // Level 2: Under Finance Director
+  addEmployee('Patricia Kelly', 'FP&A Manager', 'Finance', 2, finDir);
+  addEmployee('Daniel Wilson', 'Financial Analyst', 'Finance', 2, finDir);
+  addEmployee('Nancy Adams', 'Accountant', 'Finance', 2, finDir);
+
+  // Level 2: Under Legal
+  addEmployee('Steven Wright', 'Compliance Officer', 'Legal', 2, legalDir);
+  addEmployee('Barbara King', 'Senior Paralegal', 'Legal', 2, legalDir);
+
+  // Level 2: Under Ops
+  addEmployee('Margaret Hill', 'Project Manager', 'Operations', 2, opsDir);
+  addEmployee('Kevin Morgan', 'Business Analyst', 'Operations', 2, opsDir);
+
+  // Level 2: Under HR
+  addEmployee('Elizabeth James', 'Talent Partner', 'Human Resources', 2, hrDir);
+  addEmployee('Paul Watson', 'Recruiter', 'Human Resources', 2, hrDir);
+  addEmployee('Helen Foster', 'Benefits Specialist', 'Human Resources', 2, hrDir);
+
+  // More employees under Engineering (extras for bulk)
+  addEmployee('Mark Sullivan', 'Software Engineer', 'Engineering', 3, engLead1);
+  addEmployee('Jason Howard', 'Software Engineer', 'Engineering', 3, engLead2);
+  addEmployee('Eric Barnes', 'Software Engineer', 'Engineering', 3, engLead1);
+  addEmployee('Lisa Fisher', 'Software Engineer', 'Engineering', 3, engLead2);
+
+  // Compute child counts
+  const childCountMap = new Map<number, number>();
+  for (const emp of employees) {
+    if (emp.managerId !== null) {
+      childCountMap.set(emp.managerId, (childCountMap.get(emp.managerId) || 0) + 1);
+    }
+  }
+  for (const emp of employees) {
+    emp.childCount = childCountMap.get(emp.id) || 0;
+  }
+
+  return employees;
 }
 
 // ─── 2. FINANCE DATA ────────────────────────────────────────────────
