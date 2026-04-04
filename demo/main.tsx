@@ -1,26 +1,223 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { DataGrid } from '../src';
 import type { ColumnDef, GridApi, CellRendererParams } from '../src';
 import {
   generateHREmployees, type HREmployee,
-  generateFinanceData, type FinanceRow,
+  generateFinanceData, tickFinanceData, type FinanceRow,
   generateCandidates, type Candidate,
   generateProducts, type Product,
+  generateGameData, type GameRow,
 } from './sampleData';
 import '../src/styles/datagrid.css';
 
 // ═══════════════════════════════════════════════════════════════════════
-// CUSTOM CELL RENDERERS
+// SHARED CELL RENDERERS
 // ═══════════════════════════════════════════════════════════════════════
 
-function StatusBadge({ value }: CellRendererParams<any>) {
+// ─── HR Renderers ───
+
+function EmployeeCell({ data }: CellRendererParams<HREmployee>) {
+  const d = data as HREmployee;
+  return (
+    <div className="flex items-center gap-3" style={{ height: '100%' }}>
+      <div
+        className="flex-shrink-0 flex items-center justify-center rounded-full text-white text-xs font-bold"
+        style={{ width: 36, height: 36, backgroundColor: d.avatarColor }}
+      >
+        {d.initials}
+      </div>
+      <div className="flex flex-col leading-tight min-w-0">
+        <span className="font-semibold text-[13px] text-gray-900 truncate">{d.name}</span>
+        <span className="text-[11px] text-gray-400 truncate">{d.jobTitle}</span>
+      </div>
+    </div>
+  );
+}
+
+const deptColors: Record<string, { border: string; dot: string }> = {
+  'Executive Management': { border: 'rgba(71,168,248,0.42)', dot: 'rgb(71,168,248)' },
+  'Engineering': { border: 'rgba(243,163,58,0.33)', dot: 'rgb(243,162,58)' },
+  'Product': { border: 'rgba(136,207,43,0.33)', dot: 'rgb(135,207,43)' },
+  'Design': { border: 'rgba(126,128,231,0.32)', dot: 'rgb(126,128,231)' },
+  'Customer Support': { border: 'rgba(140,140,140,0.25)', dot: 'rgb(180,180,180)' },
+  'Legal': { border: 'rgba(140,140,140,0.25)', dot: 'rgb(180,180,180)' },
+  'Finance': { border: 'rgba(76,175,80,0.3)', dot: 'rgb(76,175,80)' },
+  'Marketing': { border: 'rgba(255,152,0,0.3)', dot: 'rgb(255,152,0)' },
+  'Human Resources': { border: 'rgba(233,30,99,0.3)', dot: 'rgb(233,30,99)' },
+  'Operations': { border: 'rgba(0,188,212,0.3)', dot: 'rgb(0,188,212)' },
+};
+
+function DeptChip({ value }: CellRendererParams<HREmployee>) {
+  const c = deptColors[value] || { border: '#ccc', dot: '#ccc' };
+  return (
+    <span
+      className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-[12px] font-medium"
+      style={{ border: `1px solid ${c.border}`, boxShadow: 'rgba(0,0,0,0.05) 0px 1px 2px' }}
+    >
+      <span className="rounded-full" style={{ width: 8, height: 8, backgroundColor: c.dot }} />
+      {value}
+    </span>
+  );
+}
+
+function LocationCell({ data }: CellRendererParams<HREmployee>) {
+  const d = data as HREmployee;
+  return (
+    <span className="flex items-center gap-2">
+      <span className="text-base">{d.flag}</span>
+      <span>{d.location}</span>
+    </span>
+  );
+}
+
+function PaymentStatusBadge({ value }: CellRendererParams<HREmployee>) {
+  if (value === 'Paid') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[12px] font-medium capitalize"
+        style={{ border: '1px solid rgba(70,227,114,0.2)', color: 'rgb(62,184,97)' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        paid
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[12px] font-medium capitalize"
+      style={{ border: '1px solid #ccc', color: '#999' }}>
+      pending
+    </span>
+  );
+}
+
+function ContactCell() {
+  return (
+    <div className="flex items-center gap-2">
+      <button className="flex items-center justify-center rounded-md border border-gray-200 bg-white shadow-sm"
+        style={{ width: 30, height: 30 }} title="LinkedIn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#0A66C2">
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+        </svg>
+      </button>
+      <button className="flex items-center justify-center rounded-md border border-gray-200 bg-white shadow-sm"
+        style={{ width: 30, height: 30 }} title="Email">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="M22 4L12 13L2 4" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ─── Finance Renderers ───
+
+function TickerCell({ data }: CellRendererParams<FinanceRow>) {
+  const d = data as FinanceRow;
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-shrink-0 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
+        style={{ width: 24, height: 24, backgroundColor: d.color }}>
+        {d.ticker.slice(0, 2)}
+      </div>
+      <span className="font-bold text-[13px]" style={{ fontFamily: 'monospace' }}>{d.ticker}</span>
+      <span className="text-[11px] text-gray-400 truncate">{d.name}</span>
+    </div>
+  );
+}
+
+function SparklineBar({ value }: CellRendererParams<FinanceRow>) {
+  const data = (value as number[]) || [];
+  if (data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const w = 180;
+  const h = 30;
+  const barW = w / data.length - 1;
+
+  return (
+    <svg width={w} height={h} className="block">
+      {data.map((v, i) => {
+        const barH = Math.max(2, ((v - min) / range) * (h - 2));
+        return (
+          <rect
+            key={i}
+            x={i * (barW + 1)}
+            y={h - barH}
+            width={barW}
+            height={barH}
+            fill="#2196f3"
+            opacity={0.7}
+            rx={1}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+function DeltaValueCell({ value, data, colDef }: CellRendererParams<FinanceRow>) {
+  const d = data as FinanceRow;
+  const field = colDef?.field;
+  const delta = field === 'pnl' ? d.pnlDelta : d.totalValueDelta;
+  const isUp = delta >= 0;
+  const arrow = isUp ? '↑' : '↓';
+  const deltaColor = isUp ? 'rgb(53,182,90)' : 'rgb(255,0,92)';
+  const num = Number(value) || 0;
+  const formatted = field === 'totalValue'
+    ? num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : num.toFixed(2);
+  const deltaFormatted = Math.abs(delta).toFixed(2);
+
+  return (
+    <div className="flex items-center justify-end gap-2 font-mono text-[13px]">
+      {delta !== 0 && (
+        <span style={{ color: deltaColor, fontSize: '11px', fontWeight: 500 }}>
+          {arrow}{deltaFormatted}
+        </span>
+      )}
+      <span className="font-medium">{formatted}</span>
+    </div>
+  );
+}
+
+// ─── Performance Renderers ───
+
+function StarRating({ value }: CellRendererParams<GameRow>) {
+  const n = Number(value) || 0;
+  return (
+    <span className="text-amber-400 tracking-wider text-sm">
+      {'★'.repeat(n)}{'☆'.repeat(5 - n)}
+    </span>
+  );
+}
+
+function CountryCell({ data }: CellRendererParams<GameRow>) {
+  const d = data as GameRow;
+  return (
+    <span className="flex items-center gap-2">
+      <span className="text-base">{d.countryFlag}</span>
+      <span>{d.country}</span>
+    </span>
+  );
+}
+
+function BoughtCell({ value }: CellRendererParams<GameRow>) {
+  return value ? (
+    <span className="text-green-600 text-sm">✓</span>
+  ) : (
+    <span className="text-gray-300 text-sm">✗</span>
+  );
+}
+
+// ─── Staffing Renderers ───
+
+function StageBadge({ value }: CellRendererParams<any>) {
   const colors: Record<string, string> = {
     Paid: 'bg-green-100 text-green-700 border-green-200',
     Pending: 'bg-amber-100 text-amber-700 border-amber-200',
-    Permanent: 'bg-blue-100 text-blue-700 border-blue-200',
-    Contract: 'bg-purple-100 text-purple-700 border-purple-200',
-    // Pipeline stages
     New: 'bg-slate-100 text-slate-700 border-slate-200',
     Screening: 'bg-cyan-100 text-cyan-700 border-cyan-200',
     Submitted: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -29,97 +226,10 @@ function StatusBadge({ value }: CellRendererParams<any>) {
     Placed: 'bg-green-100 text-green-700 border-green-200',
     Rejected: 'bg-red-100 text-red-700 border-red-200',
   };
-  const dotColors: Record<string, string> = {
-    Paid: 'bg-green-500', Pending: 'bg-amber-500', Permanent: 'bg-blue-500',
-    Contract: 'bg-purple-500', New: 'bg-slate-400', Screening: 'bg-cyan-500',
-    Submitted: 'bg-blue-500', Interview: 'bg-indigo-500', Offer: 'bg-amber-500',
-    Placed: 'bg-green-500', Rejected: 'bg-red-500',
-  };
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${colors[value] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${dotColors[value] || 'bg-gray-400'}`} />
       {value}
     </span>
-  );
-}
-
-function DeptTag({ value }: CellRendererParams<HREmployee>) {
-  const labels: Record<string, string> = {
-    executiveManagement: 'Executive', engineering: 'Engineering', product: 'Product',
-    design: 'Design', customerSupport: 'Support', legal: 'Legal',
-    finance: 'Finance', marketing: 'Marketing', hr: 'HR', operations: 'Operations',
-  };
-  const colors: Record<string, string> = {
-    executiveManagement: 'bg-amber-100 text-amber-800', engineering: 'bg-blue-100 text-blue-800',
-    product: 'bg-purple-100 text-purple-800', design: 'bg-pink-100 text-pink-800',
-    customerSupport: 'bg-teal-100 text-teal-800', legal: 'bg-gray-100 text-gray-800',
-    finance: 'bg-green-100 text-green-800', marketing: 'bg-orange-100 text-orange-800',
-    hr: 'bg-rose-100 text-rose-800', operations: 'bg-cyan-100 text-cyan-800',
-  };
-  return (
-    <span className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ${colors[value] || 'bg-gray-100 text-gray-800'}`}>
-      {labels[value] || value}
-    </span>
-  );
-}
-
-function FlagCell({ value, data }: CellRendererParams<HREmployee>) {
-  const flags: Record<string, string> = {
-    us: '🇺🇸', gb: '🇬🇧', fr: '🇫🇷', de: '🇩🇪', es: '🇪🇸', nl: '🇳🇱',
-    pt: '🇵🇹', ie: '🇮🇪', in: '🇮🇳', jp: '🇯🇵', ca: '🇨🇦', au: '🇦🇺',
-  };
-  return (
-    <span className="flex items-center gap-2">
-      <span className="text-base">{flags[(data as HREmployee).flag] || '🏳️'}</span>
-      <span>{value}</span>
-    </span>
-  );
-}
-
-function TickerCell({ value, data }: CellRendererParams<FinanceRow>) {
-  const d = data as FinanceRow;
-  return (
-    <div className="flex flex-col leading-tight">
-      <span className="font-bold text-[13px]" style={{ fontFamily: 'monospace' }}>{d.ticker}</span>
-      <span className="text-[10px] text-gray-400 truncate">{d.name}</span>
-    </div>
-  );
-}
-
-function PnLCell({ value }: CellRendererParams<FinanceRow>) {
-  const n = Number(value) || 0;
-  return (
-    <span className={`font-semibold ${n >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontFamily: 'monospace' }}>
-      {n >= 0 ? '+' : ''}{n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-    </span>
-  );
-}
-
-function PctCell({ value }: CellRendererParams<FinanceRow>) {
-  const n = Number(value) || 0;
-  return (
-    <span className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-bold ${
-      n >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-    }`}>
-      {n >= 0 ? '▲' : '▼'} {Math.abs(n).toFixed(2)}%
-    </span>
-  );
-}
-
-function MiniChart({ value }: CellRendererParams<FinanceRow>) {
-  const data = value as number[] || [];
-  if (data.length < 2) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const w = 120;
-  const h = 28;
-  const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * h}`).join(' ');
-  const isUp = data[data.length - 1]! >= data[0]!;
-  return (
-    <svg width={w} height={h} className="block">
-      <polyline points={points} fill="none" stroke={isUp ? '#22c55e' : '#ef4444'} strokeWidth="1.5" />
-    </svg>
   );
 }
 
@@ -143,11 +253,11 @@ function InStockCell({ value }: CellRendererParams<Product>) {
 // SECTION WRAPPER
 // ═══════════════════════════════════════════════════════════════════════
 
-function Section({ id, title, subtitle, tags, children }: {
-  id: string; title: string; subtitle: string; tags: string[]; children: React.ReactNode;
+function Section({ title, subtitle, tags, children }: {
+  title: string; subtitle: string; tags: string[]; children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="mb-14 scroll-mt-20">
+    <section className="mb-8">
       <div className="mb-4">
         <h2 className="text-xl font-bold text-gray-900">{title}</h2>
         <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
@@ -163,123 +273,158 @@ function Section({ id, title, subtitle, tags, children }: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// DEMO 1: HR EMPLOYEE DIRECTORY
+// DEMO 1: HR EMPLOYEE DIRECTORY (AG Grid style)
 // ═══════════════════════════════════════════════════════════════════════
 
 function HRDemo() {
   const [data] = useState(() => generateHREmployees(56));
   const gridRef = useRef<GridApi<HREmployee>>(null);
-  const [log, setLog] = useState<string[]>([]);
-  const addLog = useCallback((msg: string) => setLog(p => [`${new Date().toLocaleTimeString()} — ${msg}`, ...p].slice(0, 12)), []);
 
   const cols: ColumnDef<HREmployee>[] = [
-    { field: 'id', headerName: 'Employee ID', width: 115, pinned: 'left',
-      cellStyle: () => ({ fontFamily: 'monospace', fontSize: '11px', color: '#6b7280' }) },
-    { field: 'name', headerName: 'Employee', width: 175, sortable: true, filter: 'text', floatingFilter: true, pinned: 'left',
-      cellStyle: () => ({ fontWeight: 600 }) },
-    { field: 'department', headerName: 'Department', width: 140, sortable: true, filter: 'set', floatingFilter: true,
-      enableRowGroup: true, cellRenderer: DeptTag },
-    { field: 'jobTitle', headerName: 'Job Title', width: 180, sortable: true, filter: 'text', floatingFilter: true },
-    { field: 'employmentType', headerName: 'Type', width: 120, sortable: true, filter: 'set', floatingFilter: true,
-      cellRenderer: StatusBadge, enableRowGroup: true },
-    { field: 'location', headerName: 'Location', width: 170, sortable: true, filter: 'set', floatingFilter: true,
-      enableRowGroup: true, cellRenderer: FlagCell },
-    { field: 'joinDate', headerName: 'Join Date', width: 115, sortable: true, filter: 'date' },
-    { field: 'salary', headerName: 'Monthly Salary', width: 135, sortable: true, filter: 'number', aggFunc: 'sum',
+    {
+      field: 'name', headerName: 'EMPLOYEE', width: 300, pinned: 'left', sortable: true, filter: 'text',
+      cellRenderer: EmployeeCell,
+    },
+    { field: 'id', headerName: 'ID', width: 100,
+      cellStyle: () => ({ fontFamily: 'monospace', fontSize: '12px', color: '#9ca3af' }) },
+    { field: 'department', headerName: 'DEPARTMENT', width: 220, sortable: true, filter: 'set', enableRowGroup: true,
+      cellRenderer: DeptChip },
+    { field: 'employmentType', headerName: 'EMPLOYMENT TYPE', width: 160, sortable: true, filter: 'set' },
+    { field: 'location', headerName: 'LOCATION', width: 200, sortable: true, filter: 'set', enableRowGroup: true,
+      cellRenderer: LocationCell },
+    { field: 'joinDate', headerName: 'JOIN DATE', width: 120, sortable: true, filter: 'date' },
+    { field: 'salary', headerName: 'SALARY', width: 150, sortable: true, filter: 'number', aggFunc: 'sum',
       valueFormatter: ({ value, data: d }) => {
         const sym = { USD: '$', EUR: '€', GBP: '£' }[(d as HREmployee)?.currency] || '$';
         return `${sym}${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
       },
       cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
-    { field: 'currency', headerName: 'CCY', width: 70, sortable: true, filter: 'set' },
-    { field: 'paymentMethod', headerName: 'Payment', width: 130, sortable: true, filter: 'set', editable: true },
-    { field: 'paymentStatus', headerName: 'Status', width: 110, sortable: true, filter: 'set', floatingFilter: true,
-      cellRenderer: StatusBadge, enableRowGroup: true },
-    { field: 'manager', headerName: 'Reports To', width: 155, sortable: true, filter: 'set', enableRowGroup: true },
-    { field: 'contact', headerName: 'Contact', width: 120, pinned: 'right',
-      cellStyle: () => ({ color: '#3b82f6', cursor: 'pointer' }) },
+    { field: 'paymentMethod', headerName: 'PAYMENT METHOD', width: 160, sortable: true, filter: 'set' },
+    { field: 'paymentStatus', headerName: 'STATUS', width: 120, sortable: true, filter: 'set',
+      cellRenderer: PaymentStatusBadge },
+    { colId: 'contact', headerName: 'CONTACT', width: 120,
+      cellRenderer: ContactCell },
   ];
 
   return (
-    <Section id="hr" title="HR Employee Directory" subtitle="56 employees with org hierarchy, departments, multi-currency salaries, and payment tracking"
-      tags={['Tree Hierarchy', 'Department Tags', 'Flag Renderer', 'Multi-Currency', 'Payment Status', 'Column Pinning', 'Grouping', 'Editable']}>
-      <div className="flex gap-2 mb-3 flex-wrap">
-        {[
-          ['Select All', () => { gridRef.current?.selectAll(); addLog('Selected all'); }],
-          ['Deselect', () => { gridRef.current?.deselectAll(); addLog('Deselected all'); }],
-          ['Get Selected', () => { const r = gridRef.current?.getSelectedRows(); addLog(`${r?.length || 0} selected: ${r?.slice(0, 3).map(x => x.name).join(', ') || 'none'}`); }],
-          ['Export CSV', () => { gridRef.current?.exportCsv({ fileName: 'employees.csv' }); addLog('CSV exported'); }],
-          ['Export Excel', () => { gridRef.current?.exportExcel({ fileName: 'employees.xlsx' }); addLog('Excel exported'); }],
-        ].map(([label, fn]) => (
-          <button key={label as string} className="rounded-md bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-            onClick={fn as () => void}>{label as string}</button>
-        ))}
-      </div>
+    <Section title="HR Employee Directory" subtitle="56 employees with department chips, location flags, payment status badges, and contact actions"
+      tags={['Avatars', 'Department Tags', 'Flag Renderer', 'Status Badges', 'Contact Icons', 'Column Pinning', 'Grouping']}>
       <DataGrid<HREmployee>
-        ref={gridRef} gridId="gallery-hr" rowData={data} columnDefs={cols}
+        ref={gridRef} gridId="hr-demo" rowData={data} columnDefs={cols}
         defaultColDef={{ sortable: true, resizable: true, minWidth: 60 }}
         getRowId={d => String(d.id)} rowSelection="multiple"
-        groupPanel floatingFilters persistSettings statusBar height={580}
-        toolbar={{ search: true, columnManager: true, export: { csv: true, excel: true, psd: true }, density: true }}
-        onCellValueChanged={e => addLog(`Edit: ${e.colDef.field} "${e.oldValue}" → "${e.newValue}"`)}
-        onSortChanged={e => addLog(`Sort: ${e.sortModel.map(s => `${s.colId} ${s.sort}`).join(', ') || 'cleared'}`)}
-        onFilterChanged={e => addLog(`Filters: ${Object.keys(e.filterModel).length} active`)}
-        onSelectionChanged={e => addLog(`Selected: ${e.selectedRows.length} rows`)}
+        groupPanel floatingFilters={false} statusBar height={620}
+        rowHeight={65}
+        toolbar={{ search: true, columnManager: true, export: { csv: true, excel: true }, density: false }}
       />
-      <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 max-h-36 overflow-y-auto">
-        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Event Log</h4>
-        <div className="space-y-0.5 font-mono text-[11px] text-gray-500">
-          {log.length === 0 ? <p className="italic text-gray-300">Interact with the grid...</p> : log.map((m, i) => <div key={i}>{m}</div>)}
-        </div>
-      </div>
     </Section>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// DEMO 2: FINANCE PORTFOLIO
+// DEMO 2: FINANCE — LIVE TICKING (AG Grid style)
 // ═══════════════════════════════════════════════════════════════════════
 
 function FinanceDemo() {
-  const [data] = useState(generateFinanceData);
+  const [data, setData] = useState(generateFinanceData);
+
+  // Real-time ticking every 1.5s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setData(prev => tickFinanceData(prev));
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
 
   const cols: ColumnDef<FinanceRow>[] = [
-    { field: 'ticker', headerName: 'Instrument', width: 200, pinned: 'left', sortable: true, filter: 'text', cellRenderer: TickerCell },
-    { field: 'timeline', headerName: 'Timeline', width: 140, cellRenderer: MiniChart },
-    { field: 'instrument', headerName: 'Type', width: 100, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true,
-      cellStyle: () => ({ textAlign: 'right', fontSize: '11px' }) },
-    { field: 'sector', headerName: 'Sector', width: 130, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true },
-    { field: 'currentPrice', headerName: 'Price', width: 110, sortable: true, filter: 'number',
-      valueFormatter: ({ value }) => `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      cellStyle: () => ({ fontFamily: 'monospace', fontWeight: 600, textAlign: 'right' }) },
-    { field: 'changePct', headerName: 'Change %', width: 110, sortable: true, cellRenderer: PctCell },
-    { field: 'pnl', headerName: 'P&L', width: 130, sortable: true, filter: 'number', aggFunc: 'sum', cellRenderer: PnLCell },
-    { field: 'totalValue', headerName: 'Total Value', width: 140, sortable: true, filter: 'number', aggFunc: 'sum',
-      valueFormatter: ({ value }) => `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
-    { field: 'quantity', headerName: 'Qty', width: 75, sortable: true,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
-    { field: 'purchasePrice', headerName: 'Cost Basis', width: 110, sortable: true,
-      valueFormatter: ({ value }) => `$${Number(value).toFixed(2)}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', color: '#6b7280' }) },
-    { field: 'volume', headerName: 'Volume', width: 120, sortable: true, filter: 'number',
+    { field: 'ticker', headerName: 'TICKER', width: 300, sortable: true, filter: 'text',
+      cellRenderer: TickerCell },
+    { field: 'timeline', headerName: 'TIMELINE', width: 200,
+      cellRenderer: SparklineBar },
+    { field: 'instrument', headerName: 'INSTRUMENT', width: 150, sortable: true, filter: 'set',
+      cellStyle: () => ({ textAlign: 'right', fontSize: '13px' }) },
+    { field: 'pnl', headerName: 'P&L', width: 220, sortable: true, filter: 'number',
+      cellRenderer: DeltaValueCell },
+    { field: 'totalValue', headerName: 'TOTAL VALUE', width: 250, sortable: true, filter: 'number',
+      cellRenderer: DeltaValueCell },
+    { field: 'quantity', headerName: 'QUANTITY', width: 150, sortable: true,
       valueFormatter: ({ value }) => Number(value).toLocaleString(),
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '11px', color: '#6b7280' }) },
-    { field: 'peRatio', headerName: 'P/E', width: 75, sortable: true,
-      valueFormatter: ({ value }) => value != null ? String(value) : '—',
-      cellStyle: ({ value }) => ({ fontFamily: 'monospace', textAlign: 'right', color: Number(value) > 30 ? '#dc2626' : Number(value) < 15 ? '#059669' : '#374151' }) },
-    { field: 'dividend', headerName: 'Div %', width: 80, sortable: true,
-      valueFormatter: ({ value }) => Number(value) > 0 ? `${value}%` : '—',
       cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
   ];
 
   return (
-    <Section id="finance" title="Finance Portfolio" subtitle="34 instruments — stocks, bonds, ETFs, crypto, commodities with P&L tracking and sparkline charts"
-      tags={['Sparkline Charts', 'P&L Coloring', 'Sector Grouping', 'Aggregation', 'Monospace Numbers', 'Ticker Renderer', 'Multi-instrument']}>
+    <Section title="Finance Portfolio" subtitle="34 instruments with live ticking prices, SVG bar sparklines, and animated P&L delta arrows"
+      tags={['Live Updates', 'Bar Sparklines', 'P&L Arrows', 'Delta Coloring', 'Real-time Ticking']}>
       <DataGrid<FinanceRow>
-        gridId="gallery-finance" rowData={data} columnDefs={cols}
+        gridId="finance-demo" rowData={data} columnDefs={cols}
         defaultColDef={{ sortable: true, resizable: true }}
-        getRowId={d => d.ticker} groupPanel floatingFilters statusBar height={550}
+        getRowId={d => d.ticker} statusBar height={600}
+        toolbar={{ search: true, export: { csv: true }, density: false }}
+      />
+    </Section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DEMO 3: PERFORMANCE — 1000 ROWS (AG Grid style)
+// ═══════════════════════════════════════════════════════════════════════
+
+function PerformanceDemo() {
+  const [data] = useState(() => generateGameData(1000));
+
+  const cols: ColumnDef<GameRow>[] = [
+    // Participant group
+    { field: 'name', headerName: 'NAME', width: 180, sortable: true, filter: 'text',
+      cellStyle: () => ({ fontWeight: 600 }) },
+    { field: 'language', headerName: 'LANGUAGE', width: 130, sortable: true, filter: 'set', enableRowGroup: true },
+    { field: 'country', headerName: 'COUNTRY', width: 200, sortable: true, filter: 'set', enableRowGroup: true,
+      cellRenderer: CountryCell },
+    // Game of Choice group
+    { field: 'gameName', headerName: 'GAME', width: 140, sortable: true, filter: 'set', enableRowGroup: true },
+    { field: 'bought', headerName: 'BOUGHT', width: 90, sortable: true,
+      cellRenderer: BoughtCell, cellStyle: () => ({ textAlign: 'center' }) },
+    // Performance group
+    { field: 'bankBalance', headerName: 'BANK BALANCE', width: 150, sortable: true, filter: 'number', aggFunc: 'avg',
+      valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
+      cellStyle: ({ value }) => ({
+        fontFamily: 'monospace', textAlign: 'right',
+        color: Number(value) > 25000 ? '#2563eb' : undefined,
+        fontWeight: Number(value) > 25000 ? 600 : undefined,
+      }) },
+    { field: 'rating', headerName: 'RATING', width: 140, sortable: true, filter: 'number', aggFunc: 'avg',
+      cellRenderer: StarRating },
+    { field: 'totalWinnings', headerName: 'TOTAL WINNINGS', width: 170, sortable: true, filter: 'number', aggFunc: 'sum',
+      valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
+      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontWeight: 600 }) },
+    // Monthly Breakdown
+    { field: 'jan', headerName: 'JAN', width: 100, sortable: true,
+      valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
+      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+    { field: 'feb', headerName: 'FEB', width: 100, sortable: true,
+      valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
+      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+    { field: 'mar', headerName: 'MAR', width: 100, sortable: true,
+      valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
+      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+    { field: 'apr', headerName: 'APR', width: 100, sortable: true,
+      valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
+      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+    { field: 'may', headerName: 'MAY', width: 100, sortable: true,
+      valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
+      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+    { field: 'jun', headerName: 'JUN', width: 100, sortable: true,
+      valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
+      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+  ];
+
+  return (
+    <Section title="Performance" subtitle="1,000 rows, 14 columns — gaming tournament data with star ratings, country flags, and monthly breakdown"
+      tags={['1000 Rows', 'Star Ratings', 'Country Flags', 'Dollar Formatting', 'Aggregation', 'Grouping']}>
+      <DataGrid<GameRow>
+        gridId="perf-demo" rowData={data} columnDefs={cols}
+        defaultColDef={{ sortable: true, resizable: true, minWidth: 60 }}
+        getRowId={d => String(d.id)} rowSelection="multiple"
+        pagination paginationPageSize={100} groupPanel floatingFilters statusBar height={620}
         toolbar={{ search: true, columnManager: true, export: { csv: true, excel: true }, density: true }}
       />
     </Section>
@@ -287,7 +432,7 @@ function FinanceDemo() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// DEMO 3: STAFFING PIPELINE
+// DEMO 4: STAFFING PIPELINE
 // ═══════════════════════════════════════════════════════════════════════
 
 function StaffingDemo() {
@@ -298,7 +443,7 @@ function StaffingDemo() {
     { field: 'name', headerName: 'Candidate', width: 165, sortable: true, filter: 'text', floatingFilter: true, cellStyle: () => ({ fontWeight: 600 }) },
     { field: 'role', headerName: 'Role', width: 190, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true },
     { field: 'client', headerName: 'Client', width: 145, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true },
-    { field: 'stage', headerName: 'Stage', width: 120, sortable: true, filter: 'set', floatingFilter: true, cellRenderer: StatusBadge, enableRowGroup: true },
+    { field: 'stage', headerName: 'Stage', width: 120, sortable: true, filter: 'set', floatingFilter: true, cellRenderer: StageBadge, enableRowGroup: true },
     { field: 'priority', headerName: 'Priority', width: 100, sortable: true, filter: 'set', floatingFilter: true, cellRenderer: PriorityCell },
     { field: 'source', headerName: 'Source', width: 110, sortable: true, filter: 'set', enableRowGroup: true },
     { field: 'recruiter', headerName: 'Recruiter', width: 130, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true },
@@ -314,55 +459,21 @@ function StaffingDemo() {
         fontFamily: 'monospace', textAlign: 'right', fontWeight: 600,
         color: Number(value) >= 35 ? '#059669' : Number(value) >= 25 ? '#d97706' : '#dc2626',
       }) },
-    { field: 'yearsExp', headerName: 'Yrs Exp', width: 80, sortable: true, filter: 'number',
-      cellStyle: () => ({ textAlign: 'center' }) },
+    { field: 'yearsExp', headerName: 'Yrs Exp', width: 80, sortable: true, filter: 'number', cellStyle: () => ({ textAlign: 'center' }) },
     { field: 'skills', headerName: 'Skills', width: 200, filter: 'text' },
     { field: 'submitDate', headerName: 'Submitted', width: 110, sortable: true, filter: 'date' },
-    { field: 'email', headerName: 'Email', width: 210, hide: true },
-    { field: 'phone', headerName: 'Phone', width: 140, hide: true },
     { field: 'notes', headerName: 'Notes', width: 250, editable: true },
   ];
 
   return (
-    <Section id="staffing" title="Staffing Pipeline" subtitle="250 candidates — the core JobTalk.ai use case with pipeline stages, bill rates, and recruiter tracking"
-      tags={['Pipeline Stages', 'Priority Heat', 'Margin Coloring', 'Bill Rate', 'Skills', 'Client Grouping', 'Recruiter View', 'Editable Notes']}>
+    <Section title="Staffing Pipeline" subtitle="250 candidates — pipeline stages, bill rates, margin coloring, and recruiter tracking"
+      tags={['Pipeline Stages', 'Priority Heat', 'Margin Coloring', 'Bill Rate', 'Client Grouping', 'Pagination']}>
       <DataGrid<Candidate>
-        gridId="gallery-staffing" rowData={data} columnDefs={cols}
+        gridId="staffing-demo" rowData={data} columnDefs={cols}
         defaultColDef={{ sortable: true, resizable: true, minWidth: 55 }}
         getRowId={d => String(d.id)} rowSelection="multiple"
-        pagination paginationPageSize={50} groupPanel floatingFilters persistSettings statusBar height={580}
-        toolbar={{ search: true, columnManager: true, export: { csv: true, excel: true, psd: true, email: true, scheduleEmail: true }, density: true }}
-      />
-    </Section>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// DEMO 4: SIMPLE TABLE
-// ═══════════════════════════════════════════════════════════════════════
-
-function SimpleDemo() {
-  const [data] = useState(() => generateProducts(30));
-  const cols: ColumnDef<Product>[] = [
-    { field: 'sku', headerName: 'SKU', width: 110, cellStyle: () => ({ fontFamily: 'monospace', fontSize: '11px' }) },
-    { field: 'name', headerName: 'Product', width: 200, sortable: true, filter: 'text' },
-    { field: 'category', headerName: 'Category', width: 140, sortable: true, filter: 'set' },
-    { field: 'price', headerName: 'Price', width: 100, sortable: true, filter: 'number',
-      valueFormatter: ({ value }) => `$${Number(value).toFixed(2)}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
-    { field: 'stock', headerName: 'Stock', width: 90, sortable: true, filter: 'number', editable: true, cellEditor: 'number',
-      cellStyle: () => ({ textAlign: 'right' }) },
-    { field: 'inStock', headerName: 'Availability', width: 120, cellRenderer: InStockCell },
-  ];
-
-  return (
-    <Section id="simple" title="Simple Product Table" subtitle="Minimal configuration — 30 rows, no pagination, no grouping. Proof the grid scales down gracefully."
-      tags={['Minimal Config', 'No Pagination', 'Inline Edit', 'Basic Filters']}>
-      <DataGrid<Product>
-        gridId="gallery-simple" rowData={data} columnDefs={cols}
-        defaultColDef={{ sortable: true, resizable: true }}
-        getRowId={d => String(d.id)} height={400} statusBar
-        toolbar={{ search: true, export: { csv: true } }}
+        pagination paginationPageSize={50} groupPanel floatingFilters statusBar height={600}
+        toolbar={{ search: true, columnManager: true, export: { csv: true, excel: true }, density: true }}
       />
     </Section>
   );
@@ -375,27 +486,29 @@ function SimpleDemo() {
 function DarkDemo() {
   const [data] = useState(() => generateHREmployees(30));
   const cols: ColumnDef<HREmployee>[] = [
-    { field: 'name', headerName: 'Employee', width: 170, sortable: true, filter: 'text', floatingFilter: true, cellStyle: () => ({ fontWeight: 600 }) },
-    { field: 'department', headerName: 'Department', width: 140, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true, cellRenderer: DeptTag },
-    { field: 'jobTitle', headerName: 'Title', width: 170, sortable: true },
-    { field: 'location', headerName: 'Location', width: 160, sortable: true, filter: 'set', cellRenderer: FlagCell },
-    { field: 'salary', headerName: 'Salary', width: 120, sortable: true,
+    { field: 'name', headerName: 'Employee', width: 280, sortable: true, filter: 'text',
+      cellRenderer: EmployeeCell },
+    { field: 'department', headerName: 'Department', width: 200, sortable: true, filter: 'set', enableRowGroup: true,
+      cellRenderer: DeptChip },
+    { field: 'location', headerName: 'Location', width: 200, sortable: true, filter: 'set',
+      cellRenderer: LocationCell },
+    { field: 'salary', headerName: 'Salary', width: 140, sortable: true,
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
       cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
-    { field: 'paymentStatus', headerName: 'Status', width: 110, cellRenderer: StatusBadge },
-    { field: 'employmentType', headerName: 'Type', width: 120, cellRenderer: StatusBadge },
+    { field: 'paymentStatus', headerName: 'Status', width: 120,
+      cellRenderer: PaymentStatusBadge },
   ];
 
   return (
-    <Section id="dark" title="Dark Theme" subtitle="Identical component, one prop change. CSS custom properties power the entire theme system."
-      tags={['Dark Mode', 'theme=\"dark\"', 'CSS Variables', 'Zero Config']}>
+    <Section title="Dark Theme" subtitle={'One prop: theme="dark". CSS custom properties power the entire theme system.'}
+      tags={['Dark Mode', 'CSS Variables', 'Zero Config']}>
       <div className="rounded-xl bg-gray-950 p-5">
         <DataGrid<HREmployee>
-          gridId="gallery-dark" rowData={data} columnDefs={cols}
+          gridId="dark-demo" rowData={data} columnDefs={cols}
           defaultColDef={{ sortable: true, resizable: true }}
           getRowId={d => String(d.id)} rowSelection="multiple"
-          pagination paginationPageSize={15} groupPanel floatingFilters statusBar
-          theme="dark" height={460}
+          pagination paginationPageSize={15} statusBar
+          theme="dark" height={460} rowHeight={65}
           toolbar={{ search: true, columnManager: true, export: { csv: true }, density: true }}
         />
       </div>
@@ -419,10 +532,10 @@ function BrandDemo() {
   ];
 
   return (
-    <Section id="brand" title="Custom Brand Theme" subtitle="Override any color via GridThemeTokens prop. This uses an indigo/purple palette."
-      tags={['Custom Colors', 'Brand Palette', 'GridThemeTokens', 'No CSS Override Needed']}>
+    <Section title="Custom Brand Theme" subtitle="Override any color via GridThemeTokens prop. Indigo/purple palette."
+      tags={['Custom Colors', 'Brand Palette', 'GridThemeTokens']}>
       <DataGrid<Product>
-        gridId="gallery-brand" rowData={data} columnDefs={cols}
+        gridId="brand-demo" rowData={data} columnDefs={cols}
         defaultColDef={{ sortable: true, resizable: true }}
         getRowId={d => String(d.id)} height={360} statusBar toolbar={{ search: true }}
         theme={{
@@ -438,7 +551,7 @@ function BrandDemo() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// DEMO 7: STATES
+// DEMO 7: LOADING & EMPTY STATES
 // ═══════════════════════════════════════════════════════════════════════
 
 function StatesDemo() {
@@ -452,7 +565,7 @@ function StatesDemo() {
   ];
 
   return (
-    <Section id="states" title="Loading & Empty States" subtitle="Built-in overlays for loading spinners and empty data."
+    <Section title="Loading & Empty States" subtitle="Built-in overlays for loading spinners and empty data."
       tags={['Loading Overlay', 'Empty State', 'Prop Driven']}>
       <div className="flex gap-2 mb-3">
         <button className={`rounded-md px-3 py-1.5 text-xs font-medium ${loading ? 'bg-red-600 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300'}`}
@@ -478,44 +591,36 @@ function APIDemo() {
   const cols: ColumnDef<HREmployee>[] = [
     { field: 'id', headerName: 'ID', width: 100 },
     { field: 'name', headerName: 'Name', width: 160 },
-    { field: 'department', headerName: 'Dept', width: 130, filter: 'set' },
+    { field: 'department', headerName: 'Dept', width: 180, filter: 'set', cellRenderer: DeptChip },
     { field: 'salary', headerName: 'Salary', width: 120, valueFormatter: ({ value }) => `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
-    { field: 'paymentStatus', headerName: 'Status', width: 100, cellRenderer: StatusBadge },
+    { field: 'paymentStatus', headerName: 'Status', width: 120, cellRenderer: PaymentStatusBadge },
   ];
 
-  const btn = (label: string, fn: () => void, color = 'blue') => (
-    <button key={label} className={`rounded-md bg-${color}-50 px-2.5 py-1.5 text-[11px] font-semibold text-${color}-700 ring-1 ring-inset ring-${color}-600/20 hover:bg-${color}-100`}
-      onClick={fn}>{label}</button>
-  );
-
   return (
-    <Section id="api" title="Programmatic API" subtitle="Full imperative control via GridApi ref — sorting, filtering, selection, export, state management."
-      tags={['GridApi', 'useRef', 'Imperative', 'selectAll()', 'setSortModel()', 'exportCsv()', 'getState()']}>
+    <Section title="Programmatic API" subtitle="Full imperative control via GridApi ref — sorting, filtering, selection, export, state management."
+      tags={['GridApi', 'useRef', 'Imperative', 'selectAll()', 'exportCsv()', 'getState()']}>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5 mb-3">
-        {btn('selectAll()', () => { gridRef.current?.selectAll(); setOutput('api.selectAll() — all rows selected'); })}
-        {btn('deselectAll()', () => { gridRef.current?.deselectAll(); setOutput('api.deselectAll()'); })}
-        {btn('getSelectedRows()', () => {
-          const r = gridRef.current?.getSelectedRows() || [];
-          setOutput(`api.getSelectedRows() → ${r.length} rows [${r.slice(0, 2).map(x => x.name).join(', ')}${r.length > 2 ? '...' : ''}]`);
-        })}
-        {btn('Sort: Salary ↓', () => { gridRef.current?.setSortModel([{ colId: 'salary', sort: 'desc' }]); setOutput('api.setSortModel([{colId:"salary", sort:"desc"}])'); })}
-        {btn('Filter: "Paid"', () => { gridRef.current?.setQuickFilter('Paid'); setOutput('api.setQuickFilter("Paid")'); })}
-        {btn('Clear Filter', () => { gridRef.current?.setQuickFilter(''); setOutput('api.setQuickFilter("")'); })}
-        {btn('Hide Salary', () => { gridRef.current?.setColumnVisible('salary', false); setOutput('api.setColumnVisible("salary", false)'); })}
-        {btn('Show Salary', () => { gridRef.current?.setColumnVisible('salary', true); setOutput('api.setColumnVisible("salary", true)'); })}
-        {btn('exportCsv()', () => { gridRef.current?.exportCsv(); setOutput('api.exportCsv() → downloading...'); }, 'green')}
-        {btn('getState()', () => {
-          const s = gridRef.current?.getState();
-          setOutput(`api.getState() → ${JSON.stringify(s?.sorting)} sorts, ${Object.keys(s?.columnVisibility || {}).length} hidden`);
-        }, 'purple')}
-        {btn('resetState()', () => { gridRef.current?.resetState(); setOutput('api.resetState() → defaults restored'); }, 'red')}
-        {btn('getRowCount()', () => { setOutput(`api.getDisplayedRowCount() → ${gridRef.current?.getDisplayedRowCount()}`); })}
+        {[
+          ['selectAll()', () => { gridRef.current?.selectAll(); setOutput('api.selectAll() — all rows selected'); }],
+          ['deselectAll()', () => { gridRef.current?.deselectAll(); setOutput('api.deselectAll()'); }],
+          ['getSelectedRows()', () => { const r = gridRef.current?.getSelectedRows() || []; setOutput(`→ ${r.length} rows [${r.slice(0, 2).map(x => x.name).join(', ')}${r.length > 2 ? '...' : ''}]`); }],
+          ['Sort: Salary ↓', () => { gridRef.current?.setSortModel([{ colId: 'salary', sort: 'desc' }]); setOutput('api.setSortModel([{colId:"salary", sort:"desc"}])'); }],
+          ['Quick Filter', () => { gridRef.current?.setQuickFilter('Paid'); setOutput('api.setQuickFilter("Paid")'); }],
+          ['Clear Filter', () => { gridRef.current?.setQuickFilter(''); setOutput('api.setQuickFilter("")'); }],
+          ['Export CSV', () => { gridRef.current?.exportCsv(); setOutput('api.exportCsv() → downloading...'); }],
+          ['getState()', () => { const s = gridRef.current?.getState(); setOutput(`sorting: ${JSON.stringify(s?.sorting)}`); }],
+          ['resetState()', () => { gridRef.current?.resetState(); setOutput('api.resetState() → defaults restored'); }],
+        ].map(([label, fn]) => (
+          <button key={label as string}
+            className="rounded-md bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-600/20 hover:bg-blue-100"
+            onClick={fn as () => void}>{label as string}</button>
+        ))}
       </div>
       <div className="mb-3 rounded-lg bg-gray-900 px-4 py-2.5 font-mono text-[12px] text-green-400 shadow-inner">
         <span className="text-gray-500">❯ </span>{output}
       </div>
       <DataGrid<HREmployee>
-        ref={gridRef} gridId="gallery-api" rowData={data} columnDefs={cols}
+        ref={gridRef} gridId="api-demo" rowData={data} columnDefs={cols}
         defaultColDef={{ sortable: true, resizable: true }}
         getRowId={d => String(d.id)} rowSelection="multiple" height={340} statusBar
       />
@@ -524,23 +629,19 @@ function APIDemo() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// NAVIGATION
+// APP — TABBED NAVIGATION
 // ═══════════════════════════════════════════════════════════════════════
 
 const navItems = [
   { id: 'hr', label: 'HR Directory', icon: '👥', component: HRDemo },
   { id: 'finance', label: 'Finance', icon: '📈', component: FinanceDemo },
+  { id: 'performance', label: 'Performance', icon: '🏆', component: PerformanceDemo },
   { id: 'staffing', label: 'Staffing', icon: '🎯', component: StaffingDemo },
-  { id: 'simple', label: 'Simple', icon: '📋', component: SimpleDemo },
   { id: 'dark', label: 'Dark Theme', icon: '🌙', component: DarkDemo },
   { id: 'brand', label: 'Brand Theme', icon: '🎨', component: BrandDemo },
   { id: 'states', label: 'States', icon: '⏳', component: StatesDemo },
   { id: 'api', label: 'API', icon: '⚡', component: APIDemo },
 ];
-
-// ═══════════════════════════════════════════════════════════════════════
-// APP
-// ═══════════════════════════════════════════════════════════════════════
 
 function App() {
   const [activeTab, setActiveTab] = useState('hr');
@@ -548,7 +649,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Nav */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <div className="mx-auto max-w-[1440px] px-6 flex items-center h-12 gap-5">
           <div className="flex items-center gap-2.5 mr-3">
@@ -579,7 +679,6 @@ function App() {
         </div>
       </nav>
 
-      {/* Hero - compact */}
       <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 text-white py-6 px-6">
         <div className="mx-auto max-w-[1440px] flex items-center justify-between">
           <div>
@@ -587,18 +686,16 @@ function App() {
             <p className="text-blue-200 text-sm mt-0.5">AG Grid-level features. Zero license fees. MIT open source.</p>
           </div>
           <div className="hidden md:flex flex-wrap gap-1.5 text-[10px] font-medium max-w-xl justify-end">
-            {['Sorting', 'Filtering', 'Grouping', 'Cell Editing', 'Export',
-              'Dark Mode', 'Themes', 'Pagination', 'Custom Renderers', 'API Control'].map(f => (
+            {['Sorting', 'Filtering', 'Grouping', 'Cell Editing', 'Live Updates',
+              'Dark Mode', 'Themes', 'Pagination', 'Custom Renderers', 'Sparklines'].map(f => (
               <span key={f} className="rounded-full bg-white/15 backdrop-blur-sm px-2 py-0.5 border border-white/10">{f}</span>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Active Demo */}
       <div className="mx-auto max-w-[1440px] px-6 py-8">
         <ActiveDemo />
-
         <footer className="mt-16 border-t border-gray-200 pt-6 pb-10 text-center">
           <p className="text-sm text-gray-400">@jobtalk/datagrid v0.1.0 — Built by <a href="https://github.com/taj3rconnect" className="text-blue-500 hover:underline">Taj Haslani</a></p>
           <p className="text-xs text-gray-300 mt-1">TanStack Table v8 + Tailwind CSS — MIT Licensed</p>
@@ -609,7 +706,6 @@ function App() {
   );
 }
 
-// ─── Mount ───
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

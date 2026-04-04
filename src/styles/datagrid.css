@@ -80,6 +80,17 @@
   background-color: var(--jt-grid-row-selected);
 }
 
+/* ─── Value change flash animation ─── */
+.jt-cell-flash {
+  background-color: rgba(68, 173, 73, 0.38) !important;
+  transition: background-color 0.1s ease-in;
+}
+
+.jt-cell-flash-fade {
+  background-color: transparent !important;
+  transition: background-color 1s ease-out;
+}
+
 /* ─── Scrollbar Styling ─── */
 .jt-datagrid ::-webkit-scrollbar {
   width: 8px;
