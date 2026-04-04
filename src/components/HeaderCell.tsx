@@ -58,7 +58,10 @@ export function HeaderCell<TData>({
       }}
       title={meta?.headerTooltip}
       draggable={!meta?.colDef?.suppressMovable}
-      onDragStart={() => onDragStart?.(column.id)}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', column.id);
+        onDragStart?.(column.id);
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         onDragOver?.(column.id);
