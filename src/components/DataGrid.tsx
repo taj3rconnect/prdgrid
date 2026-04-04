@@ -1,0 +1,301 @@
+import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
+import { clsx } from 'clsx';
+import { useGridEngine } from '../core/useGridEngine';
+import { sortingToEntries, entriesToSorting, filtersToRecord, recordToFilters } from '../core/gridUtils';
+import { GridToolbar } from './GridToolbar';
+import { GridHeader } from './GridHeader';
+import { GridBody } from './GridBody';
+import { FloatingFilter } from './FloatingFilter';
+import { GroupPanel } from './GroupPanel';
+import { ColumnManager } from './ColumnManager';
+import { Pagination } from './Pagination';
+import { StatusBar } from './StatusBar';
+import { Overlay } from './Overlay';
+import { exportToCsv } from '../export/csvExport';
+import type {
+  DataGridProps,
+  ToolbarConfig,
+  GridApi,
+} from '../types';
+
+const darkThemeVars: Record<string, string> = {
+  '--jt-grid-bg': '#1f2937',
+  '--jt-grid-bg-alt': '#263040',
+  '--jt-grid-border': '#374151',
+  '--jt-grid-header-bg': '#111827',
+  '--jt-grid-header-text': '#f3f4f6',
+  '--jt-grid-text': '#d1d5db',
+  '--jt-grid-text-secondary': '#9ca3af',
+  '--jt-grid-accent': '#60a5fa',
+  '--jt-grid-accent-light': '#1e3a5f',
+  '--jt-grid-row-hover': '#2d3748',
+  '--jt-grid-row-selected': '#1e3a5f',
+  '--jt-grid-cell-edit': '#422006',
+};
+
+function DataGridInner<TData = any>(
+  props: DataGridProps<TData>,
+  ref: React.Ref<GridApi<TData>>
+) {
+  const {
+    rowSelection = false,
+    pagination = false,
+    paginationPageSizeOptions = [25, 50, 100, 250, 500, 1000],
+    groupPanel = false,
+    floatingFilters = false,
+    statusBar: showStatusBar = true,
+    toolbar: toolbarProp = true,
+    theme = 'light',
+    className,
+    height = 600,
+    loading = false,
+    loadingComponent,
+    noRowsComponent,
+    noRowsMessage,
+    onGridReady,
+    onCellClicked,
+    onCellDoubleClicked,
+    onCellValueChanged,
+    onSelectionChanged,
+    onSortChanged,
+    onFilterChanged,
+  } = props;
+
+  const engine = useGridEngine(props);
+  const {
+    table,
+    globalFilter,
+    setGlobalFilter,
+    grouping,
+    setGrouping,
+    density,
+    setDensity,
+    resetState,
+  } = engine;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showColumnManager, setShowColumnManager] = useState(false);
+  const mountedRef = useRef(false);
+
+  const toolbarConfig: ToolbarConfig = useMemo(() =>
+    typeof toolbarProp === 'boolean'
+      ? toolbarProp
+        ? { search: true, columnManager: true, export: { csv: true }, density: true }
+        : {}
+      : toolbarProp,
+    [toolbarProp]
+  );
+
+  const themeStyle = useMemo(() =>
+    (typeof theme === 'object'
+      ? theme
+      : theme === 'dark'
+        ? darkThemeVars
+        : {}) as React.CSSProperties,
+    [theme]
+  );
+
+  const showSelectionColumn = rowSelection !== false;
+
+  // ─── Grid API ───
+  const gridApi = useMemo<GridApi<TData>>(() => ({
+    getRowData: () => table.getCoreRowModel().rows.map((r) => r.original),
+    getDisplayedRowCount: () => table.getRowModel().rows.length,
+    getSelectedRows: () => table.getSelectedRowModel().rows.map((r) => r.original),
+    autoSizeAllColumns: () => table.resetColumnSizing(),
+    setColumnVisible: (colId, visible) => {
+      table.getColumn(colId)?.toggleVisibility(visible);
+    },
+    moveColumn: (colId, toIndex) => {
+      const order = table.getState().columnOrder;
+      const allIds = table.getAllLeafColumns().map((c) => c.id);
+      const currentOrder = order.length ? [...order] : [...allIds];
+      const fromIndex = currentOrder.indexOf(colId);
+      if (fromIndex !== -1) {
+        currentOrder.splice(fromIndex, 1);
+        currentOrder.splice(toIndex, 0, colId);
+        table.setColumnOrder(currentOrder);
+      }
+    },
+    setColumnPinned: (colId, pinned) => {
+      table.getColumn(colId)?.pin(pinned);
+    },
+    setSortModel: (model) => engine.setSorting(entriesToSorting(model)),
+    getSortModel: () => sortingToEntries(engine.sorting),
+    setFilterModel: (model) => engine.setColumnFilters(recordToFilters(model)),
+    getFilterModel: () => filtersToRecord(engine.columnFilters),
+    setQuickFilter: (text) => setGlobalFilter(text),
+    selectAll: () => table.toggleAllRowsSelected(true),
+    deselectAll: () => table.toggleAllRowsSelected(false),
+    startEditingCell: () => { /* TODO: implement in Phase 4 */ },
+    stopEditing: () => { /* TODO: implement in Phase 4 */ },
+    exportCsv: (params) => exportToCsv(table, params),
+    exportExcel: async (params) => {
+      const { exportToExcel } = await import('../export/excelExport');
+      exportToExcel(table, params);
+    },
+    exportImage: async (params) => {
+      const { exportToImage } = await import('../export/psdExport');
+      exportToImage(containerRef.current!, params);
+    },
+    getState: () => ({
+      columnOrder: table.getState().columnOrder,
+      columnSizing: table.getState().columnSizing,
+      columnVisibility: table.getState().columnVisibility,
+      sorting: sortingToEntries(engine.sorting),
+      columnFilters: filtersToRecord(engine.columnFilters),
+      grouping: engine.grouping,
+      expanded: typeof engine.expanded === 'boolean' ? {} : engine.expanded,
+      pageSize: table.getState().pagination.pageSize,
+      columnPinning: table.getState().columnPinning as { left: string[]; right: string[] },
+    }),
+    applyState: () => { /* TODO */ },
+    resetState,
+    refreshCells: () => {},
+    ensureRowVisible: () => {},
+  }), [table, engine.sorting, engine.columnFilters, engine.grouping, engine.expanded, resetState, setGlobalFilter]);
+
+  useImperativeHandle(ref, () => gridApi, [gridApi]);
+
+  // Fire onGridReady
+  useEffect(() => {
+    onGridReady?.({ api: gridApi });
+    mountedRef.current = true;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fire events (skip initial mount)
+  useEffect(() => {
+    if (!mountedRef.current) return;
+    onSortChanged?.({ sortModel: sortingToEntries(engine.sorting) });
+  }, [engine.sorting]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!mountedRef.current) return;
+    onFilterChanged?.({ filterModel: filtersToRecord(engine.columnFilters) });
+  }, [engine.columnFilters]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!mountedRef.current) return;
+    onSelectionChanged?.({
+      selectedRows: table.getSelectedRowModel().rows.map((r) => r.original),
+      selectedRowIds: Object.keys(engine.rowSelectionState),
+    });
+  }, [engine.rowSelectionState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCellClick = useCallback(
+    (cell: any, event: React.MouseEvent) => {
+      const colMeta = cell.column.columnDef.meta as any;
+      onCellClicked?.({
+        data: cell.row.original,
+        value: cell.getValue(),
+        colDef: colMeta?.colDef || {},
+        rowIndex: cell.row.index,
+        event,
+      });
+    },
+    [onCellClicked]
+  );
+
+  const handleCellDoubleClick = useCallback(
+    (cell: any, event: React.MouseEvent) => {
+      const colMeta = cell.column.columnDef.meta as any;
+      onCellDoubleClicked?.({
+        data: cell.row.original,
+        value: cell.getValue(),
+        colDef: colMeta?.colDef || {},
+        rowIndex: cell.row.index,
+        event,
+      });
+    },
+    [onCellDoubleClicked]
+  );
+
+  const handleCellValueChanged = useCallback(
+    (cell: any, oldValue: any, newValue: any) => {
+      const colMeta = cell.column.columnDef.meta as any;
+      onCellValueChanged?.({
+        data: cell.row.original,
+        colDef: colMeta?.colDef || {},
+        oldValue,
+        newValue,
+        rowIndex: cell.row.index,
+      });
+    },
+    [onCellValueChanged]
+  );
+
+  const heightStyle = typeof height === 'number' ? `${height}px` : height;
+
+  return (
+    <div
+      ref={containerRef}
+      className={clsx(
+        'jt-datagrid',
+        'flex flex-col overflow-hidden rounded-lg border border-grid-border bg-grid-bg shadow-sm',
+        theme === 'dark' && 'dark',
+        className
+      )}
+      style={{ height: heightStyle, ...themeStyle }}
+    >
+      {Object.keys(toolbarConfig).length > 0 && (
+        <GridToolbar
+          table={table}
+          config={toolbarConfig}
+          globalFilter={globalFilter}
+          onGlobalFilterChange={setGlobalFilter}
+          density={density}
+          onDensityChange={setDensity}
+          onResetState={resetState}
+          onToggleColumnManager={() => setShowColumnManager(!showColumnManager)}
+          onExportCsv={() => gridApi.exportCsv()}
+          onExportExcel={() => gridApi.exportExcel()}
+          onExportImage={() => gridApi.exportImage()}
+        />
+      )}
+
+      {groupPanel && (
+        <GroupPanel
+          table={table}
+          grouping={grouping}
+          onGroupingChange={setGrouping}
+        />
+      )}
+
+      <div className="flex-1 overflow-auto">
+        <table className="jt-table w-full border-collapse text-grid-base">
+          <GridHeader table={table} showSelectionColumn={showSelectionColumn} />
+          {floatingFilters && (
+            <FloatingFilter table={table} showSelectionColumn={showSelectionColumn} />
+          )}
+          <GridBody
+            table={table}
+            density={density}
+            noRowsComponent={noRowsComponent}
+            noRowsMessage={noRowsMessage}
+            onCellClick={handleCellClick}
+            onCellDoubleClick={handleCellDoubleClick}
+            onCellValueChanged={handleCellValueChanged}
+          />
+        </table>
+      </div>
+
+      <Overlay loading={loading} loadingComponent={loadingComponent} />
+
+      {pagination && (
+        <Pagination table={table} pageSizeOptions={paginationPageSizeOptions} />
+      )}
+
+      {showStatusBar && <StatusBar table={table} />}
+
+      <ColumnManager
+        table={table}
+        isOpen={showColumnManager}
+        onClose={() => setShowColumnManager(false)}
+      />
+    </div>
+  );
+}
+
+export const DataGrid = forwardRef(DataGridInner) as <TData = any>(
+  props: DataGridProps<TData> & { ref?: React.Ref<GridApi<TData>> }
+) => React.ReactElement;
