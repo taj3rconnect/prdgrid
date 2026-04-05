@@ -14,9 +14,59 @@ import { Overlay } from './Overlay';
 import { exportToCsv } from '../export/csvExport';
 import type {
   DataGridProps,
+  GridType,
   ToolbarConfig,
   GridApi,
 } from '../types';
+
+// ─── Grid Type Presets ──────────────────────────────────────────────
+const REGULAR_DEFAULTS: Partial<DataGridProps<any>> = {
+  pagination: true,
+  paginationPageSize: 100,
+  rowSelection: 'multiple',
+  floatingFilters: true,
+  statusBar: true,
+  toolbar: true,
+};
+
+const GRID_TYPE_DEFAULTS: Record<GridType, Partial<DataGridProps<any>>> = {
+  regular: REGULAR_DEFAULTS,
+  normal: REGULAR_DEFAULTS,
+  drilldown: {
+    groupPanel: true,
+    groupDefaultExpanded: 1,
+    rowSelection: 'multiple',
+    floatingFilters: true,
+    statusBar: true,
+    toolbar: true,
+  },
+  finance: {
+    pagination: false,
+    density: 'compact',
+    rowSelection: false,
+    floatingFilters: true,
+    statusBar: true,
+    toolbar: { search: true, columnManager: true, export: { csv: true, excel: true }, density: true },
+  },
+  editable: {
+    pagination: true,
+    paginationPageSize: 50,
+    rowSelection: 'single',
+    floatingFilters: false,
+    statusBar: true,
+    toolbar: { search: true, columnManager: true, export: { csv: true }, density: true },
+  },
+  highvol: {
+    pagination: true,
+    paginationPageSize: 500,
+    paginationPageSizeOptions: [100, 250, 500, 1000, 5000],
+    density: 'compact',
+    rowSelection: 'multiple',
+    floatingFilters: true,
+    statusBar: true,
+    toolbar: true,
+  },
+};
 
 const darkThemeVars: Record<string, string> = {
   '--jt-grid-bg': '#1f2937',
@@ -37,11 +87,22 @@ function DataGridInner<TData = any>(
   props: DataGridProps<TData>,
   ref: React.Ref<GridApi<TData>>
 ) {
+  // Merge gridType preset defaults with explicit props (explicit wins)
+  const { gridType = 'regular', enableRowGroup = true, ...restProps } = props;
+  const preset = GRID_TYPE_DEFAULTS[gridType];
+  const merged = { ...preset, ...restProps };
+
+  // If enableRowGroup is set, force groupPanel on
+  if (enableRowGroup) {
+    merged.groupPanel = true;
+  }
+
   const {
     rowSelection = false,
     pagination = false,
     paginationPageSizeOptions = [25, 50, 100, 250, 500, 1000],
     groupPanel = false,
+    groupDefaultExpanded,
     floatingFilters = false,
     statusBar: showStatusBar = true,
     toolbar: toolbarProp = true,
@@ -59,9 +120,25 @@ function DataGridInner<TData = any>(
     onSelectionChanged,
     onSortChanged,
     onFilterChanged,
-  } = props;
+  } = merged;
 
-  const engine = useGridEngine(props);
+  const mergedProps = useMemo<DataGridProps<TData>>(() => ({
+    ...merged,
+    enableRowGroup,
+    rowSelection,
+    pagination,
+    paginationPageSizeOptions,
+    groupPanel,
+    groupDefaultExpanded,
+    floatingFilters,
+    statusBar: showStatusBar,
+    toolbar: toolbarProp,
+    theme,
+    height,
+    loading,
+  } as DataGridProps<TData>), [merged]);
+
+  const engine = useGridEngine(mergedProps);
   const {
     table,
     globalFilter,

@@ -455,9 +455,17 @@ export interface ColumnMeta<TData = any> {
 
 export type GridDensity = 'compact' | 'normal' | 'comfortable';
 
+// ─── Grid Type Presets ───────────────────────────────────────────────
+
+export type GridType = 'regular' | 'normal' | 'drilldown' | 'finance' | 'editable' | 'highvol';
+
 // ─── Main Grid Props ─────────────────────────────────────────────────
 
 export interface DataGridProps<TData = any> {
+  /** Grid type preset — sets sensible defaults for common use cases */
+  gridType?: GridType;
+  /** Enable row grouping (available for all grid types) */
+  enableRowGroup?: boolean;
   /** Unique grid ID for state persistence */
   gridId?: string;
   /** Row data array */
