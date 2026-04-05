@@ -36,11 +36,26 @@ function getNestedValue(obj: any, path: string): any {
 
 let columnCounter = 0;
 
+const AMOUNT_FIELD_PATTERN = /\b(amount|price|cost|total|salary|revenue|balance|fee|budget|income|profit|margin|tax|discount|spend|expense|pnl|winnings|billRate|bankBalance|gp|gross|net)\b/i;
+
+function formatWithDecimals(value: any, decimals: number): string {
+  if (value == null || isNaN(value)) return value;
+  return Number(value).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function isAmountField(field?: string, headerName?: string): boolean {
+  if (field && AMOUNT_FIELD_PATTERN.test(field)) return true;
+  if (headerName && AMOUNT_FIELD_PATTERN.test(headerName)) return true;
+  return false;
+}
+
+
 // ─── Column Mapping ──────────────────────────────────────────────────
 
 function mapColumnDef<TData>(
   col: ColumnDef<TData>,
-  defaultColDef?: Partial<ColumnDef<TData>>
+  defaultColDef?: Partial<ColumnDef<TData>>,
+  gridEnableRowGroup?: boolean
 ): TanStackColumnDef<TData, any> {
   const merged = { ...defaultColDef, ...col };
   const id = col.colId || col.field || `col_${++columnCounter}`;
@@ -56,7 +71,7 @@ function mapColumnDef<TData>(
         : undefined,
     enableSorting: merged.sortable !== false,
     enableColumnFilter: merged.filter !== false && merged.filter !== undefined,
-    enableGrouping: merged.enableRowGroup === true,
+    enableGrouping: merged.enableRowGroup === true || gridEnableRowGroup === true,
     enableResizing: merged.resizable !== false,
     enableHiding: merged.lockVisible !== true,
     size: merged.width || 150,
@@ -74,7 +89,8 @@ function mapColumnDef<TData>(
       headerRenderer: merged.headerRenderer,
       cellClass: merged.cellClass,
       cellStyle: merged.cellStyle,
-      valueFormatter: merged.valueFormatter,
+      valueFormatter: merged.valueFormatter || undefined,
+      autoNumeric: !merged.valueFormatter && (merged.filter === 'number' || isAmountField(merged.field, merged.headerName)),
       valueParser: merged.valueParser,
       valueSetter: merged.valueSetter,
       cellValidator: merged.cellValidator,
@@ -103,13 +119,16 @@ function mapColumnDef<TData>(
           rowIndex: -1,
         });
       }
+      if (!merged.valueFormatter && (isAmountField(merged.field, merged.headerName) || merged.filter === 'number')) {
+        return formatWithDecimals(val, 0);
+      }
       return val;
     };
   }
 
   if (col.children && col.children.length > 0) {
     (tanstackCol as any).columns = col.children.map((child) =>
-      mapColumnDef(child, defaultColDef)
+      mapColumnDef(child, defaultColDef, gridEnableRowGroup)
     );
   }
 
@@ -151,6 +170,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     persistSettings = false,
     density: propDensity = 'normal',
     gridId,
+    enableRowGroup: gridEnableRowGroup = true,
   } = props;
 
   const persisted = useMemo(
@@ -220,12 +240,37 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
   });
 
   const [density, setDensity] = useState<GridDensity>(propDensity);
-  const [columnAlignment, setColumnAlignment] = useState<Record<string, 'left' | 'center' | 'right'>>({});
+  const defaultAlignment = useMemo(() => {
+    const align: Record<string, 'left' | 'center' | 'right'> = {};
+    const applyDefaults = (cols: ColumnDef<TData>[]) => {
+      for (const col of cols) {
+        const merged = { ...defaultColDef, ...col };
+        const id = col.colId || col.field;
+        if (id && (merged.filter === 'number' || isAmountField(merged.field, merged.headerName))) {
+          align[id] = 'right';
+        }
+        if (col.children) applyDefaults(col.children);
+      }
+    };
+    applyDefaults(columnDefs);
+    return align;
+  }, [columnDefs, defaultColDef]);
+
+  const [userAlignment, setUserAlignment] = useState<Record<string, 'left' | 'center' | 'right'>>(
+    () => persisted?.columnAlignment || {}
+  );
+  const columnAlignment = useMemo(() => ({ ...defaultAlignment, ...userAlignment }), [defaultAlignment, userAlignment]);
+  const setColumnAlignment = setUserAlignment;
+
+  const [columnDecimals, setColumnDecimals] = useState<Record<string, number>>(
+    () => persisted?.columnDecimals || {}
+  );
+
   const pageSize = persisted?.pageSize || paginationPageSize;
 
   // ─── Map columns ───
   const tanstackColumns = useMemo(
-    () => columnDefs.map((c) => mapColumnDef(c, defaultColDef)),
+    () => columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup)),
     [columnDefs, defaultColDef]
   );
 
@@ -294,12 +339,14 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
         left: columnPinning.left || [],
         right: columnPinning.right || [],
       },
+      columnDecimals,
+      columnAlignment: userAlignment,
     };
 
     savePersistedState(gridId, state);
   }, [
     persistSettings, gridId, columnOrder, columnSizing, columnVisibility,
-    sorting, columnFilters, grouping, expanded, columnPinning,
+    sorting, columnFilters, grouping, expanded, columnPinning, columnDecimals, userAlignment,
   ]);
 
   // ─── Reset state ───
@@ -317,6 +364,8 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     setExpanded({});
     setRowSelectionState({});
     setColumnPinning({ left: [], right: [] });
+    setColumnDecimals({});
+    setUserAlignment({});
   }, [gridId]);
 
   return {
@@ -345,6 +394,8 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     setColumnPinning,
     setDensity,
     setColumnAlignment,
+    columnDecimals,
+    setColumnDecimals,
     resetState,
   };
 }

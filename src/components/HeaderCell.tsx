@@ -80,7 +80,11 @@ export function HeaderCell<TData>({
         onDragEnd?.();
       }}
     >
-      <div className="flex items-center gap-1" onClick={handleSort}>
+      <div className={clsx(
+        'flex items-center gap-1',
+        alignment === 'right' && 'justify-end',
+        alignment === 'center' && 'justify-center',
+      )} onClick={handleSort}>
         {/* Group indicator */}
         {canGroup && (
           <button

@@ -5,6 +5,7 @@ export { DataGrid } from './components/DataGrid';
 export type {
   // Column & Grid Props
   DataGridProps,
+  GridType,
   ColumnDef,
   ToolbarConfig,
   ExportToolbarConfig,
