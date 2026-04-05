@@ -386,6 +386,10 @@ export interface PersistedGridState {
   expanded: Record<string, boolean>;
   pageSize: number;
   columnPinning: { left: string[]; right: string[] };
+  /** User-configured decimal places per column (for number/amount columns) */
+  columnDecimals?: Record<string, number>;
+  /** User-configured column alignment overrides */
+  columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
 }
 
 // ─── Toolbar Config ──────────────────────────────────────────────────
@@ -449,15 +453,25 @@ export interface ColumnMeta<TData = any> {
   aggFunc?: string | ((values: any[]) => any);
   floatingFilter?: boolean;
   headerTooltip?: string;
+  /** Auto-detected numeric column (no custom valueFormatter) — formatted by grid */
+  autoNumeric?: boolean;
 }
 
 // ─── Density ─────────────────────────────────────────────────────────
 
 export type GridDensity = 'compact' | 'normal' | 'comfortable';
 
+// ─── Grid Type Presets ───────────────────────────────────────────────
+
+export type GridType = 'regular' | 'normal' | 'drilldown' | 'finance' | 'editable' | 'highvol';
+
 // ─── Main Grid Props ─────────────────────────────────────────────────
 
 export interface DataGridProps<TData = any> {
+  /** Grid type preset — sets sensible defaults for common use cases */
+  gridType?: GridType;
+  /** Enable row grouping (available for all grid types) */
+  enableRowGroup?: boolean;
   /** Unique grid ID for state persistence */
   gridId?: string;
   /** Row data array */

@@ -9,6 +9,7 @@ interface GridCellProps<TData> {
   rowIndex: number;
   density: GridDensity;
   alignment?: 'left' | 'center' | 'right';
+  decimals?: number;
   onCellClick?: (cell: Cell<TData, unknown>, event: React.MouseEvent) => void;
   onCellDoubleClick?: (cell: Cell<TData, unknown>, event: React.MouseEvent) => void;
   onCellValueChanged?: (cell: Cell<TData, unknown>, oldValue: any, newValue: any) => void;
@@ -19,6 +20,7 @@ export const GridCell = React.memo(function GridCell<TData>({
   rowIndex,
   density,
   alignment,
+  decimals,
   onCellClick,
   onCellDoubleClick,
   onCellValueChanged,
@@ -53,9 +55,13 @@ export const GridCell = React.memo(function GridCell<TData>({
         rowIndex,
       });
     }
+    if (meta?.autoNumeric && value != null && !isNaN(Number(value))) {
+      const d = decimals ?? 0;
+      return Number(value).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+    }
     if (value === null || value === undefined) return '';
     return String(value);
-  }, [meta, value, row.original, colDef, rowIndex]);
+  }, [meta, value, row.original, colDef, rowIndex, decimals]);
 
   const cellStyle = useMemo(() => {
     let style: any = undefined;

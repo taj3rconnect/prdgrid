@@ -11,7 +11,11 @@ interface ColumnManagerProps<TData> {
   onClose: () => void;
   columnAlignment: Record<string, Alignment>;
   onColumnAlignmentChange: (colId: string, align: Alignment) => void;
+  columnDecimals: Record<string, number>;
+  onColumnDecimalsChange: (colId: string, decimals: number) => void;
 }
+
+const decimalOptions = [0, 1, 2, 3, 4];
 
 const alignOptions: { value: Alignment; icon: string; title: string }[] = [
   { value: 'left', icon: '≡', title: 'Align left' },
@@ -20,7 +24,7 @@ const alignOptions: { value: Alignment; icon: string; title: string }[] = [
 ];
 
 export function ColumnManager<TData>({
-  table, isOpen, onClose, columnAlignment, onColumnAlignmentChange,
+  table, isOpen, onClose, columnAlignment, onColumnAlignmentChange, columnDecimals, onColumnDecimalsChange,
 }: ColumnManagerProps<TData>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dragItem, setDragItem] = useState<string | null>(null);
@@ -146,6 +150,20 @@ export function ColumnManager<TData>({
                     </button>
                   ))}
                 </div>
+
+                {/* Decimal places (numeric columns only) */}
+                {(meta as any)?.autoNumeric && (
+                  <select
+                    className="h-5 w-10 rounded border border-gray-200 bg-white text-[10px] text-gray-600 focus:border-grid-accent focus:outline-none"
+                    value={columnDecimals[column.id] ?? 0}
+                    onChange={(e) => onColumnDecimalsChange(column.id, Number(e.target.value))}
+                    title="Decimal places"
+                  >
+                    {decimalOptions.map((d) => (
+                      <option key={d} value={d}>.{d}</option>
+                    ))}
+                  </select>
+                )}
 
                 {/* Pin controls */}
                 <button
