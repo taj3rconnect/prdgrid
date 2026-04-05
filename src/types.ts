@@ -386,6 +386,8 @@ export interface PersistedGridState {
   expanded: Record<string, boolean>;
   pageSize: number;
   columnPinning: { left: string[]; right: string[] };
+  /** User-configured decimal places per column (for number/amount columns) */
+  columnDecimals?: Record<string, number>;
 }
 
 // ─── Toolbar Config ──────────────────────────────────────────────────
@@ -449,6 +451,8 @@ export interface ColumnMeta<TData = any> {
   aggFunc?: string | ((values: any[]) => any);
   floatingFilter?: boolean;
   headerTooltip?: string;
+  /** Auto-detected numeric column (no custom valueFormatter) — formatted by grid */
+  autoNumeric?: boolean;
 }
 
 // ─── Density ─────────────────────────────────────────────────────────

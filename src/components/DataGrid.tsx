@@ -149,6 +149,8 @@ function DataGridInner<TData = any>(
     setDensity,
     columnAlignment,
     setColumnAlignment,
+    columnDecimals,
+    setColumnDecimals,
     resetState,
   } = engine;
 
@@ -350,6 +352,7 @@ function DataGridInner<TData = any>(
             table={table}
             density={density}
             columnAlignment={columnAlignment}
+            columnDecimals={columnDecimals}
             noRowsComponent={noRowsComponent}
             noRowsMessage={noRowsMessage}
             onCellClick={handleCellClick}
@@ -374,6 +377,10 @@ function DataGridInner<TData = any>(
         columnAlignment={columnAlignment}
         onColumnAlignmentChange={(colId, align) =>
           setColumnAlignment(prev => ({ ...prev, [colId]: align }))
+        }
+        columnDecimals={columnDecimals}
+        onColumnDecimalsChange={(colId, decimals) =>
+          setColumnDecimals(prev => ({ ...prev, [colId]: decimals }))
         }
       />
     </div>

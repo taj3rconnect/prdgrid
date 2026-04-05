@@ -7,6 +7,7 @@ interface GridBodyProps<TData> {
   table: Table<TData>;
   density: GridDensity;
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
+  columnDecimals?: Record<string, number>;
   noRowsComponent?: React.ComponentType;
   noRowsMessage?: string;
   onCellClick?: (cell: any, event: React.MouseEvent) => void;
@@ -18,6 +19,7 @@ export function GridBody<TData>({
   table,
   density,
   columnAlignment,
+  columnDecimals,
   noRowsComponent: NoRowsComp,
   noRowsMessage,
   onCellClick,
@@ -69,6 +71,7 @@ export function GridBody<TData>({
           rowIndex={index}
           density={density}
           columnAlignment={columnAlignment}
+          columnDecimals={columnDecimals}
           striped={index % 2 === 1}
           onCellClick={onCellClick}
           onCellDoubleClick={onCellDoubleClick}
