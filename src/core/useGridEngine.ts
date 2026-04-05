@@ -256,7 +256,9 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     return align;
   }, [columnDefs, defaultColDef]);
 
-  const [userAlignment, setUserAlignment] = useState<Record<string, 'left' | 'center' | 'right'>>({});
+  const [userAlignment, setUserAlignment] = useState<Record<string, 'left' | 'center' | 'right'>>(
+    () => persisted?.columnAlignment || {}
+  );
   const columnAlignment = useMemo(() => ({ ...defaultAlignment, ...userAlignment }), [defaultAlignment, userAlignment]);
   const setColumnAlignment = setUserAlignment;
 
@@ -338,12 +340,13 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
         right: columnPinning.right || [],
       },
       columnDecimals,
+      columnAlignment: userAlignment,
     };
 
     savePersistedState(gridId, state);
   }, [
     persistSettings, gridId, columnOrder, columnSizing, columnVisibility,
-    sorting, columnFilters, grouping, expanded, columnPinning, columnDecimals,
+    sorting, columnFilters, grouping, expanded, columnPinning, columnDecimals, userAlignment,
   ]);
 
   // ─── Reset state ───
@@ -362,6 +365,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     setRowSelectionState({});
     setColumnPinning({ left: [], right: [] });
     setColumnDecimals({});
+    setUserAlignment({});
   }, [gridId]);
 
   return {

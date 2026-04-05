@@ -388,6 +388,8 @@ export interface PersistedGridState {
   columnPinning: { left: string[]; right: string[] };
   /** User-configured decimal places per column (for number/amount columns) */
   columnDecimals?: Record<string, number>;
+  /** User-configured column alignment overrides */
+  columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
 }
 
 // ─── Toolbar Config ──────────────────────────────────────────────────
