@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import { flexRender, Header } from '@tanstack/react-table';
+import { flexRender, Header, Column } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 
 interface HeaderCellProps<TData> {
@@ -8,6 +8,7 @@ interface HeaderCellProps<TData> {
   onDragStart?: (columnId: string) => void;
   onDragOver?: (columnId: string) => void;
   onDragEnd?: () => void;
+  onContextMenu?: (column: Column<TData, unknown>, e: React.MouseEvent) => void;
 }
 
 export function HeaderCell<TData>({
@@ -16,6 +17,7 @@ export function HeaderCell<TData>({
   onDragStart,
   onDragOver,
   onDragEnd,
+  onContextMenu,
 }: HeaderCellProps<TData>) {
   const resizeRef = useRef<HTMLDivElement>(null);
   const column = header.column;
@@ -70,6 +72,7 @@ export function HeaderCell<TData>({
       }}
       title={meta?.headerTooltip}
       draggable={!meta?.colDef?.suppressMovable}
+      onContextMenu={(e) => onContextMenu?.(column, e)}
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', column.id);
         onDragStart?.(column.id);
@@ -125,23 +128,28 @@ export function HeaderCell<TData>({
         )}
       </div>
 
-      {/* Resize handle */}
+      {/* Resize handle — wide hit area, narrow visible line */}
       {column.getCanResize() && (
         <div
           ref={resizeRef}
           className={clsx(
-            'absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none',
-            header.column.getIsResizing()
-              ? 'bg-grid-accent opacity-100'
-              : 'hover:bg-grid-accent opacity-0 hover:opacity-50'
+            'absolute right-0 top-0 h-full w-3 -mr-1.5 cursor-col-resize select-none touch-none group/resize z-10',
           )}
           onMouseDown={header.getResizeHandler()}
           onTouchStart={header.getResizeHandler()}
           onDoubleClick={() => {
-            // Auto-size column on double-click
             column.resetSize();
           }}
-        />
+        >
+          <div
+            className={clsx(
+              'absolute right-[5px] top-1 bottom-1 w-[3px] rounded-full transition-opacity',
+              header.column.getIsResizing()
+                ? 'bg-grid-accent opacity-100'
+                : 'bg-gray-300 opacity-0 group-hover/resize:opacity-100'
+            )}
+          />
+        </div>
       )}
     </th>
   );

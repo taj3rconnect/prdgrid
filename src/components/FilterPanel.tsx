@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Table, ColumnFiltersState } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 
@@ -8,11 +8,11 @@ type Operator =
   | 'before' | 'after' | 'dateRange';
 
 interface FilterRule {
-  id: string; // unique rule id
+  id: string;
   columnId: string;
   operator: Operator;
   value: string;
-  value2?: string; // for range operators
+  value2?: string;
 }
 
 const TEXT_OPERATORS: { value: Operator; label: string }[] = [
@@ -63,32 +63,76 @@ function getDefaultOperator(filterType: string | undefined): Operator {
 
 let ruleCounter = 0;
 
-// Apply filter rules to column filters
-function rulesToColumnFilters(rules: FilterRule[]): ColumnFiltersState {
-  // Group by column
+// ─── Check if a filter value is a FilterRule[] from this panel ───
+function isRuleArray(val: unknown): val is FilterRule[] {
+  return Array.isArray(val) && val.length > 0 && typeof val[0] === 'object' && val[0] !== null && 'operator' in val[0];
+}
+
+// ─── Convert columnFilters → rules (handles both panel rules and plain values) ───
+function columnFiltersToRules(
+  columnFilters: ColumnFiltersState,
+  columnMeta: Map<string, string | undefined>,
+): FilterRule[] {
+  const rules: FilterRule[] = [];
+  for (const cf of columnFilters) {
+    if (isRuleArray(cf.value)) {
+      // Already FilterRule[] from this panel
+      rules.push(...cf.value);
+    } else if (Array.isArray(cf.value)) {
+      // Set filter (string[]) — skip, managed by floating filter only
+      continue;
+    } else if (cf.value != null && cf.value !== '') {
+      // Plain value from floating filter — convert to a rule
+      const filterType = columnMeta.get(cf.id);
+      rules.push({
+        id: `ff_${cf.id}`,
+        columnId: cf.id,
+        operator: filterType === 'number' ? 'equals' : 'contains',
+        value: String(cf.value),
+      });
+    }
+  }
+  return rules;
+}
+
+// ─── Convert rules → columnFilters ───
+// Preserves non-panel filters (set filters from floating filter) untouched
+function rulesToColumnFilters(
+  rules: FilterRule[],
+  existingFilters: ColumnFiltersState,
+): ColumnFiltersState {
+  // Columns managed by rules
+  const ruleColumnIds = new Set(rules.map((r) => r.columnId));
+
+  // Group rules by column
   const grouped = new Map<string, FilterRule[]>();
   for (const rule of rules) {
     if (!grouped.has(rule.columnId)) grouped.set(rule.columnId, []);
     grouped.get(rule.columnId)!.push(rule);
   }
 
-  const filters: ColumnFiltersState = [];
+  // Keep existing filters that aren't managed by rules (e.g. set filters)
+  const kept = existingFilters.filter(
+    (cf) => !ruleColumnIds.has(cf.id) && !(isRuleArray(cf.value)) && !(typeof cf.value === 'string' || typeof cf.value === 'number')
+  );
+
+  // Add rule-based filters
+  const result: ColumnFiltersState = [...kept];
   for (const [columnId, colRules] of grouped) {
-    // For simplicity, use the first rule's logic
-    // We pass the full rules as the value so our custom filter fn can handle them
-    filters.push({ id: columnId, value: colRules });
+    result.push({ id: columnId, value: colRules });
   }
-  return filters;
+
+  return result;
 }
 
-// Check if a value matches a filter rule
+// ─── Match a cell value against a filter rule ───
 function matchesRule(cellValue: any, rule: FilterRule): boolean {
   const op = rule.operator;
-  const val = rule.value;
 
   if (op === 'isEmpty') return cellValue == null || String(cellValue).trim() === '';
   if (op === 'isNotEmpty') return cellValue != null && String(cellValue).trim() !== '';
 
+  const val = rule.value;
   const cellStr = String(cellValue ?? '').toLowerCase();
   const valStr = val.toLowerCase();
 
@@ -98,13 +142,13 @@ function matchesRule(cellValue: any, rule: FilterRule): boolean {
     case 'equals': {
       const numCell = Number(cellValue);
       const numVal = Number(val);
-      if (!isNaN(numCell) && !isNaN(numVal)) return numCell === numVal;
+      if (!isNaN(numCell) && !isNaN(numVal) && val !== '') return numCell === numVal;
       return cellStr === valStr;
     }
     case 'notEquals': {
       const numCell = Number(cellValue);
       const numVal = Number(val);
-      if (!isNaN(numCell) && !isNaN(numVal)) return numCell !== numVal;
+      if (!isNaN(numCell) && !isNaN(numVal) && val !== '') return numCell !== numVal;
       return cellStr !== valStr;
     }
     case 'startsWith': return cellStr.startsWith(valStr);
@@ -127,24 +171,28 @@ function matchesRule(cellValue: any, rule: FilterRule): boolean {
   }
 }
 
-// Custom filter function for TanStack table
+// ─── Custom filter function for TanStack table ───
+// Handles both FilterRule[] (from panel) and plain values (from floating filters)
 export function filterPanelFilterFn(row: any, columnId: string, filterValue: any) {
-  // If filterValue is an array of FilterRules (from our panel)
-  if (Array.isArray(filterValue) && filterValue.length > 0 && filterValue[0]?.operator) {
-    const cellValue = row.getValue(columnId);
-    // All rules for same column must match (AND)
-    return (filterValue as FilterRule[]).every((rule) => matchesRule(cellValue, rule));
-  }
-  // Fallback: existing filter behavior (string/number from floating filter)
   if (filterValue == null || filterValue === '') return true;
+
   const cellValue = row.getValue(columnId);
+
+  // FilterRule[] from panel
+  if (isRuleArray(filterValue)) {
+    return filterValue.every((rule: FilterRule) => matchesRule(cellValue, rule));
+  }
+
+  // Set filter (string[]) from floating filter
   if (Array.isArray(filterValue)) {
-    // Set filter
     return filterValue.includes(String(cellValue));
   }
-  // Simple text/number match
+
+  // Plain string/number from floating filter
   return String(cellValue ?? '').toLowerCase().includes(String(filterValue).toLowerCase());
 }
+
+// ─── FilterPanel Component ───
 
 interface FilterPanelProps<TData> {
   table: Table<TData>;
@@ -156,17 +204,6 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Convert current column filters back to rules (for initialization)
-  const [rules, setRules] = useState<FilterRule[]>(() => {
-    const r: FilterRule[] = [];
-    for (const cf of columnFilters) {
-      if (Array.isArray(cf.value) && cf.value.length > 0 && cf.value[0]?.operator) {
-        r.push(...(cf.value as FilterRule[]));
-      }
-    }
-    return r;
-  });
-
   const filterableColumns = useMemo(
     () =>
       table
@@ -176,11 +213,24 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
           const meta = c.columnDef.meta as any;
           return {
             id: c.id,
-            name: typeof c.columnDef.header === 'string' ? c.columnDef.header : c.id,
+            name: (typeof c.columnDef.header === 'string' ? c.columnDef.header : c.id) as string,
             filterType: meta?.filterType as string | undefined,
           };
         }),
     [table]
+  );
+
+  // Build a map of columnId → filterType for rule conversion
+  const columnMeta = useMemo(() => {
+    const m = new Map<string, string | undefined>();
+    for (const c of filterableColumns) m.set(c.id, c.filterType);
+    return m;
+  }, [filterableColumns]);
+
+  // Derive rules from columnFilters (reactive — syncs with floating filters)
+  const rules = useMemo(
+    () => columnFiltersToRules(columnFilters, columnMeta),
+    [columnFilters, columnMeta]
   );
 
   useEffect(() => {
@@ -193,16 +243,14 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Sync rules -> columnFilters
-  const applyRules = (nextRules: FilterRule[]) => {
-    setRules(nextRules);
-    const validRules = nextRules.filter(
-      (r) => r.operator === 'isEmpty' || r.operator === 'isNotEmpty' || r.value.trim() !== ''
-    );
-    onColumnFiltersChange(rulesToColumnFilters(validRules));
-  };
+  const applyRules = useCallback(
+    (nextRules: FilterRule[]) => {
+      onColumnFiltersChange(rulesToColumnFilters(nextRules, columnFilters));
+    },
+    [onColumnFiltersChange, columnFilters]
+  );
 
-  const addRule = () => {
+  const addRule = useCallback(() => {
     if (filterableColumns.length === 0) return;
     const col = filterableColumns[0]!;
     const newRule: FilterRule = {
@@ -212,30 +260,51 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
       value: '',
     };
     applyRules([...rules, newRule]);
-  };
+  }, [filterableColumns, rules, applyRules]);
 
-  const removeRule = (ruleId: string) => {
-    applyRules(rules.filter((r) => r.id !== ruleId));
-  };
+  const removeRule = useCallback(
+    (ruleId: string) => {
+      const next = rules.filter((r) => r.id !== ruleId);
+      // If removing a floating-filter-originated rule, also clear that column filter
+      const removed = rules.find((r) => r.id === ruleId);
+      if (removed && removed.id.startsWith('ff_')) {
+        // Clear the plain column filter too
+        const cleaned = columnFilters.filter((cf) => cf.id !== removed.columnId);
+        onColumnFiltersChange(rulesToColumnFilters(next, cleaned));
+        return;
+      }
+      applyRules(next);
+    },
+    [rules, applyRules, columnFilters, onColumnFiltersChange]
+  );
 
-  const updateRule = (ruleId: string, updates: Partial<FilterRule>) => {
-    applyRules(
-      rules.map((r) => {
+  const updateRule = useCallback(
+    (ruleId: string, updates: Partial<FilterRule>) => {
+      const nextRules = rules.map((r) => {
         if (r.id !== ruleId) return r;
         const updated = { ...r, ...updates };
-        // If column changed, reset operator to default for that column type
+        // If column changed, reset operator + value
         if (updates.columnId && updates.columnId !== r.columnId) {
           const col = filterableColumns.find((c) => c.id === updates.columnId);
           updated.operator = getDefaultOperator(col?.filterType);
           updated.value = '';
           updated.value2 = undefined;
         }
+        // Re-id if it was a floating filter rule (now user-owned)
+        if (updated.id.startsWith('ff_')) {
+          updated.id = `rule_${++ruleCounter}`;
+        }
         return updated;
-      })
-    );
-  };
+      });
+      applyRules(nextRules);
+    },
+    [rules, filterableColumns, applyRules]
+  );
 
-  const clearAll = () => applyRules([]);
+  const clearAll = useCallback(() => {
+    // Clear all column filters (including floating filter values)
+    onColumnFiltersChange([]);
+  }, [onColumnFiltersChange]);
 
   const activeCount = rules.filter(
     (r) => r.operator === 'isEmpty' || r.operator === 'isNotEmpty' || r.value.trim() !== ''
@@ -300,12 +369,10 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
                   key={rule.id}
                   className="flex items-center gap-1.5 rounded bg-gray-50 px-2 py-1.5"
                 >
-                  {/* AND label (for 2nd+ rules) */}
                   <span className="text-[10px] text-gray-400 w-6 text-center">
                     {i === 0 ? 'Where' : 'AND'}
                   </span>
 
-                  {/* Column select */}
                   <select
                     className="w-24 rounded border border-gray-200 bg-white px-1 py-0.5 text-xs text-grid-text truncate"
                     value={rule.columnId}
@@ -316,7 +383,6 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
                     ))}
                   </select>
 
-                  {/* Operator select */}
                   <select
                     className="w-24 rounded border border-gray-200 bg-white px-1 py-0.5 text-xs text-grid-text"
                     value={rule.operator}
@@ -327,7 +393,6 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
                     ))}
                   </select>
 
-                  {/* Value input(s) */}
                   {!isNoValueOp(rule.operator) && (
                     <>
                       <input
@@ -352,7 +417,6 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
                     </>
                   )}
 
-                  {/* Remove */}
                   <button
                     className="ml-auto text-gray-400 hover:text-red-500 text-sm leading-none flex-shrink-0"
                     onClick={() => removeRule(rule.id)}
@@ -365,7 +429,6 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
             })}
           </div>
 
-          {/* Add filter */}
           <div className="border-t border-gray-100 px-3 py-2">
             <button
               className="flex items-center gap-1 text-xs text-grid-accent hover:underline"

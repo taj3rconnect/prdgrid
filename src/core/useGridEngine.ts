@@ -72,6 +72,7 @@ function mapColumnDef<TData>(
         : undefined,
     enableSorting: merged.sortable !== false,
     enableColumnFilter: merged.filter !== false && merged.filter !== undefined,
+    filterFn: merged.filter ? filterPanelFilterFn as any : undefined,
     enableGrouping: merged.enableRowGroup === true || gridEnableRowGroup === true,
     enableResizing: merged.resizable !== false,
     enableHiding: merged.lockVisible !== true,
@@ -317,9 +318,6 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     enableSorting: true,
     enableFilters: true,
     enableMultiSort: true,
-    filterFns: {
-      filterPanel: filterPanelFilterFn,
-    },
     getRowId: getRowId ? (row, index) => getRowId(row, index) : undefined,
     initialState: {
       pagination: { pageSize },

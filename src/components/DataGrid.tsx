@@ -307,6 +307,38 @@ function DataGridInner<TData = any>(
 
   const heightStyle = typeof height === 'number' ? `${height}px` : height;
 
+  // ─── Ctrl+C copy handler ───
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!(e.ctrlKey || e.metaKey) || e.key !== 'c') return;
+
+    // If selected rows exist, copy them as tab-delimited
+    const selected = table.getSelectedRowModel().rows;
+    if (selected.length > 0) {
+      const visibleCols = table.getVisibleLeafColumns();
+      const headers = visibleCols.map(c => typeof c.columnDef.header === 'string' ? c.columnDef.header : c.id);
+      const lines = selected.map(row =>
+        visibleCols.map(col => {
+          const val = row.getValue(col.id);
+          return val == null ? '' : String(val);
+        }).join('\t')
+      );
+      const text = [headers.join('\t'), ...lines].join('\n');
+      navigator.clipboard?.writeText(text);
+      e.preventDefault();
+      return;
+    }
+
+    // Otherwise copy focused cell value
+    const active = document.activeElement;
+    if (active?.classList.contains('jt-cell')) {
+      const cellText = active.textContent || '';
+      navigator.clipboard?.writeText(cellText.trim());
+      e.preventDefault();
+    }
+  }, [table]);
+
+  const hasActiveFilters = engine.columnFilters.length > 0 || globalFilter !== '';
+
   return (
     <div
       ref={containerRef}
@@ -317,6 +349,7 @@ function DataGridInner<TData = any>(
         className
       )}
       style={{ height: heightStyle, ...themeStyle }}
+      onKeyDown={handleKeyDown}
     >
       {Object.keys(toolbarConfig).length > 0 && (
         <GridToolbar
@@ -359,6 +392,11 @@ function DataGridInner<TData = any>(
             columnDecimals={columnDecimals}
             noRowsComponent={noRowsComponent}
             noRowsMessage={noRowsMessage}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={() => {
+              engine.setColumnFilters([]);
+              setGlobalFilter('');
+            }}
             onCellClick={handleCellClick}
             onCellDoubleClick={handleCellDoubleClick}
             onCellValueChanged={handleCellValueChanged}
