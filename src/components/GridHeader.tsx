@@ -53,29 +53,14 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
     const tableEl = theadRef.current.closest('table');
     if (!tableEl) return;
 
-    // Find the th index for this column
+    // Find the th index for this column by visible column order
+    const visibleCols = table.getVisibleLeafColumns();
+    const visIdx = visibleCols.findIndex((c) => c.id === ctxColumn.id);
+    if (visIdx === -1) return;
+    const colIndex = visIdx + (showSelectionColumn ? 1 : 0);
     const allHeaders = theadRef.current.querySelectorAll('th');
-    let colIndex = -1;
-    allHeaders.forEach((th, i) => {
-      if (th.classList.contains('jt-header-cell')) {
-        const span = th.querySelector('span');
-        const header = typeof ctxColumn.columnDef.header === 'string' ? ctxColumn.columnDef.header : ctxColumn.id;
-        if (span && span.textContent?.trim() === header) {
-          colIndex = i;
-        }
-      }
-    });
-    // Fallback: find by visible column order
-    if (colIndex === -1) {
-      const visibleCols = table.getVisibleLeafColumns();
-      const visIdx = visibleCols.findIndex((c) => c.id === ctxColumn.id);
-      if (visIdx !== -1) {
-        colIndex = visIdx + (showSelectionColumn ? 1 : 0);
-      }
-    }
-    if (colIndex === -1) return;
-
     const headerTh = allHeaders[colIndex];
+    if (!headerTh) return;
 
     // Helper: measure trimmed text width using off-screen element
     const measureText = (el: Element, container: Element): number => {

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { flexRender, Header, Column } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 
@@ -80,7 +80,6 @@ export function HeaderCell<TData>({
   onContextMenu,
 }: HeaderCellProps<TData>) {
   const resizeRef = useRef<HTMLDivElement>(null);
-  const [isNearResize, setIsNearResize] = useState(false);
   const column = header.column;
   const meta = column.columnDef.meta as any;
   const canSort = column.getCanSort();
@@ -99,18 +98,6 @@ export function HeaderCell<TData>({
     [canSort, column]
   );
 
-  // Track mouse position to disable draggable near the resize edge
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLTableCellElement>) => {
-    const th = e.currentTarget;
-    const rect = th.getBoundingClientRect();
-    const distFromRight = rect.right - e.clientX;
-    setIsNearResize(distFromRight < 12);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsNearResize(false);
-  }, []);
-
   const sortIcon = sorted
     ? sorted === 'asc'
       ? '\u25B2'
@@ -118,8 +105,6 @@ export function HeaderCell<TData>({
     : '';
 
   const sortIndex = column.getSortIndex();
-  const canDrag = !meta?.colDef?.suppressMovable && !isNearResize;
-
   return (
     <th
       className={clsx(
@@ -133,8 +118,6 @@ export function HeaderCell<TData>({
       )}
       style={{
         width: header.getSize(),
-        minWidth: column.columnDef.minSize,
-        maxWidth: column.columnDef.maxSize,
         textAlign: alignment || (() => {
           if (meta?.cellStyle && typeof meta.cellStyle === 'function') {
             const s = meta.cellStyle({});
@@ -144,15 +127,7 @@ export function HeaderCell<TData>({
         })(),
       }}
       title={meta?.headerTooltip}
-      draggable={canDrag}
       onContextMenu={(e) => onContextMenu?.(column, e)}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onDragStart={(e) => {
-        if (isNearResize) { e.preventDefault(); return; }
-        e.dataTransfer.setData('text/plain', column.id);
-        onDragStart?.(column.id);
-      }}
       onDragOver={(e) => {
         e.preventDefault();
         onDragOver?.(column.id);
@@ -162,11 +137,19 @@ export function HeaderCell<TData>({
         onDragEnd?.();
       }}
     >
-      <div className={clsx(
-        'flex items-center gap-1',
-        alignment === 'right' && 'justify-end',
-        alignment === 'center' && 'justify-center',
-      )} onClick={handleSort}>
+      <div
+        className={clsx(
+          'flex items-center gap-1',
+          alignment === 'right' && 'justify-end',
+          alignment === 'center' && 'justify-center',
+        )}
+        draggable={!meta?.colDef?.suppressMovable}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', column.id);
+          onDragStart?.(column.id);
+        }}
+        onClick={handleSort}
+      >
         {/* Group indicator — visible on hover or when actively grouped */}
         {canGroup && (
           <button
@@ -209,21 +192,10 @@ export function HeaderCell<TData>({
         <div
           ref={resizeRef}
           className="absolute right-0 top-0 h-full w-4 -mr-2 cursor-col-resize select-none touch-none group/resize z-20"
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            header.getResizeHandler()(e);
-          }}
-          onTouchStart={(e) => {
-            e.stopPropagation();
-            header.getResizeHandler()(e);
-          }}
-          onDoubleClick={(e) => {
-            e.stopPropagation();
-            autoSizeColumn(header, resizeRef, 'content');
-          }}
-          // Prevent drag from starting on the resize handle
+          onMouseDown={header.getResizeHandler()}
+          onTouchStart={header.getResizeHandler()}
+          onDoubleClick={() => autoSizeColumn(header, resizeRef, 'content')}
           draggable={false}
-          onDragStart={(e) => e.preventDefault()}
         >
           <div
             className={clsx(
