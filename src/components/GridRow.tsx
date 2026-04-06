@@ -68,14 +68,7 @@ export const GridRow = React.memo(function GridRow<TData>({
         </td>
       )}
 
-      {depth > 0 && !isGroupRow && (
-        <td
-          className="w-0 border-none p-0"
-          style={{ paddingLeft: depth * 24 }}
-        />
-      )}
-
-      {row.getVisibleCells().map((cell) => (
+      {row.getVisibleCells().map((cell, cellIndex) => (
         <GridCell
           key={cell.id}
           cell={cell}
@@ -83,6 +76,7 @@ export const GridRow = React.memo(function GridRow<TData>({
           density={density}
           alignment={columnAlignment?.[cell.column.id]}
           decimals={columnDecimals?.[cell.column.id]}
+          indentPx={cellIndex === 0 && depth > 0 && !isGroupRow ? depth * 24 : 0}
           onCellClick={onCellClick}
           onCellDoubleClick={onCellDoubleClick}
           onCellValueChanged={onCellValueChanged}

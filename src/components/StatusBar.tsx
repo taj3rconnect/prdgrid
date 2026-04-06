@@ -68,7 +68,7 @@ export function StatusBar<TData>({ table }: StatusBarProps<TData>) {
         count,
       };
     }).filter(Boolean) as Agg[];
-  }, [numericColumns, rowSelectionState, table]);
+  }, [numericColumns, rowSelectionState, table, filteredRows]);
 
   const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 

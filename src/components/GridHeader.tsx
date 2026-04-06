@@ -3,15 +3,17 @@ import { createPortal } from 'react-dom';
 import { Table, Column } from '@tanstack/react-table';
 import { HeaderCell } from './HeaderCell';
 import { HeaderContextMenu } from './HeaderContextMenu';
+import { FloatingFilter } from './FloatingFilter';
 import { reorderColumn } from '../core/gridUtils';
 
 interface GridHeaderProps<TData> {
   table: Table<TData>;
   showSelectionColumn: boolean;
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
+  showFloatingFilters?: boolean;
 }
 
-export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment }: GridHeaderProps<TData>) {
+export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment, showFloatingFilters }: GridHeaderProps<TData>) {
   const [dragColumnId, setDragColumnId] = useState<string | null>(null);
   const [dropColumnId, setDropColumnId] = useState<string | null>(null);
   const theadRef = useRef<HTMLTableSectionElement>(null);
@@ -19,6 +21,7 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
   // Context menu state
   const [ctxColumn, setCtxColumn] = useState<Column<TData, unknown> | null>(null);
   const [ctxPosition, setCtxPosition] = useState<{ x: number; y: number } | null>(null);
+  const ctxColumnRef = useRef<Column<TData, unknown> | null>(null);
 
   const handleDragStart = useCallback((columnId: string) => {
     setDragColumnId(columnId);
@@ -38,6 +41,7 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
 
   const handleContextMenu = useCallback((column: Column<TData, unknown>, e: React.MouseEvent) => {
     e.preventDefault();
+    ctxColumnRef.current = column;
     setCtxColumn(column);
     setCtxPosition({ x: e.clientX, y: e.clientY });
   }, []);
@@ -49,13 +53,14 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
 
   // Auto-size helpers that measure DOM directly
   const autoSize = useCallback((mode: 'header' | 'content') => {
-    if (!ctxColumn || !theadRef.current) return;
+    const col = ctxColumnRef.current;
+    if (!col || !theadRef.current) return;
     const tableEl = theadRef.current.closest('table');
     if (!tableEl) return;
 
     // Find the th index for this column by visible column order
     const visibleCols = table.getVisibleLeafColumns();
-    const visIdx = visibleCols.findIndex((c) => c.id === ctxColumn.id);
+    const visIdx = visibleCols.findIndex((c) => c.id === col.id);
     if (visIdx === -1) return;
     const colIndex = visIdx + (showSelectionColumn ? 1 : 0);
     const allHeaders = theadRef.current.querySelectorAll('th');
@@ -86,7 +91,7 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
     }
 
     if (mode === 'header') {
-      table.setColumnSizing((prev) => ({ ...prev, [ctxColumn.id]: headerWidth }));
+      table.setColumnSizing((prev) => ({ ...prev, [col.id]: headerWidth }));
       return;
     }
 
@@ -102,8 +107,8 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
       }
     });
 
-    table.setColumnSizing((prev) => ({ ...prev, [ctxColumn.id]: maxWidth }));
-  }, [ctxColumn, table, showSelectionColumn]);
+    table.setColumnSizing((prev) => ({ ...prev, [col.id]: maxWidth }));
+  }, [table, showSelectionColumn]);
 
   const handleFitToHeader = useCallback(() => autoSize('header'), [autoSize]);
   const handleFitToContent = useCallback(() => autoSize('content'), [autoSize]);
@@ -142,6 +147,9 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
             ))}
           </tr>
         ))}
+        {showFloatingFilters && (
+          <FloatingFilter table={table} showSelectionColumn={showSelectionColumn} />
+        )}
       </thead>
 
       {createPortal(

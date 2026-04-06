@@ -53,6 +53,8 @@ export function generateCsvString<TData>(
             colDef: meta.colDef || ({} as any),
             rowIndex: row.index,
           });
+        } else if (meta?.autoNumeric && value != null && !isNaN(Number(value))) {
+          displayValue = Number(value).toLocaleString('en-US');
         }
 
         return escapeCsvField(displayValue);

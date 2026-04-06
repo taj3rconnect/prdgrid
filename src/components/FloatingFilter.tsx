@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Table, Header } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 
@@ -9,9 +9,9 @@ interface FloatingFilterProps<TData> {
 
 export function FloatingFilter<TData>({ table, showSelectionColumn }: FloatingFilterProps<TData>) {
   return (
-    <thead className="jt-floating-filters">
+    <>
       {table.getHeaderGroups().map((headerGroup) => (
-        <tr key={`ff-${headerGroup.id}`} className="border-b border-grid-border bg-white">
+        <tr key={`ff-${headerGroup.id}`} className="jt-floating-filters border-b border-grid-border bg-white">
           {showSelectionColumn && (
             <th className="w-10 border-r border-grid-border px-1 py-1" />
           )}
@@ -20,7 +20,7 @@ export function FloatingFilter<TData>({ table, showSelectionColumn }: FloatingFi
           ))}
         </tr>
       ))}
-    </thead>
+    </>
   );
 }
 
@@ -86,7 +86,19 @@ function FloatingFilterCell<TData>({ header }: { header: Header<TData, unknown> 
 
 function SetFilterDropdown({ column }: { column: any }) {
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const filterValue = (column.getFilterValue() as string[] | undefined) ?? [];
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen]);
 
   // Get unique values from column
   const facetedValues = column.getFacetedUniqueValues?.() as Map<any, number> | undefined;
@@ -106,7 +118,7 @@ function SetFilterDropdown({ column }: { column: any }) {
   };
 
   return (
-    <div className="relative">
+    <div ref={dropdownRef} className="relative">
       <button
         className={clsx(
           'w-full rounded border px-1.5 py-0.5 text-left text-xs',

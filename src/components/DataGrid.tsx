@@ -5,7 +5,6 @@ import { sortingToEntries, entriesToSorting, filtersToRecord, recordToFilters, g
 import { GridToolbar } from './GridToolbar';
 import { GridHeader } from './GridHeader';
 import { GridBody } from './GridBody';
-import { FloatingFilter } from './FloatingFilter';
 import { GroupPanel } from './GroupPanel';
 import { ColumnManager } from './ColumnManager';
 import { Pagination } from './Pagination';
@@ -103,7 +102,6 @@ function DataGridInner<TData = any>(
     pagination = false,
     paginationPageSizeOptions = [25, 50, 100, 250, 500, 1000],
     groupPanel = false,
-    groupDefaultExpanded,
     floatingFilters = false,
     statusBar: showStatusBar = true,
     toolbar: toolbarProp = true,
@@ -126,23 +124,7 @@ function DataGridInner<TData = any>(
     columnPresets,
   } = merged;
 
-  const mergedProps = useMemo<DataGridProps<TData>>(() => ({
-    ...merged,
-    enableRowGroup,
-    rowSelection,
-    pagination,
-    paginationPageSizeOptions,
-    groupPanel,
-    groupDefaultExpanded,
-    floatingFilters,
-    statusBar: showStatusBar,
-    toolbar: toolbarProp,
-    theme,
-    height,
-    loading,
-  } as DataGridProps<TData>), [merged]);
-
-  const engine = useGridEngine(mergedProps);
+  const engine = useGridEngine(merged as DataGridProps<TData>);
   const {
     table,
     globalFilter,
@@ -250,30 +232,38 @@ function DataGridInner<TData = any>(
 
   useImperativeHandle(ref, () => gridApi, [gridApi]);
 
+  // Keep latest callbacks in refs to avoid stale closures
+  const onSortChangedRef = useRef(onSortChanged);
+  const onFilterChangedRef = useRef(onFilterChanged);
+  const onSelectionChangedRef = useRef(onSelectionChanged);
+  onSortChangedRef.current = onSortChanged;
+  onFilterChangedRef.current = onFilterChanged;
+  onSelectionChangedRef.current = onSelectionChanged;
+
   // Fire onGridReady
   useEffect(() => {
     onGridReady?.({ api: gridApi });
     mountedRef.current = true;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fire events (skip initial mount)
+  // Fire events (skip initial mount, use refs for latest callback)
   useEffect(() => {
     if (!mountedRef.current) return;
-    onSortChanged?.({ sortModel: sortingToEntries(engine.sorting) });
-  }, [engine.sorting]); // eslint-disable-line react-hooks/exhaustive-deps
+    onSortChangedRef.current?.({ sortModel: sortingToEntries(engine.sorting) });
+  }, [engine.sorting]);
 
   useEffect(() => {
     if (!mountedRef.current) return;
-    onFilterChanged?.({ filterModel: filtersToRecord(engine.columnFilters) });
-  }, [engine.columnFilters]); // eslint-disable-line react-hooks/exhaustive-deps
+    onFilterChangedRef.current?.({ filterModel: filtersToRecord(engine.columnFilters) });
+  }, [engine.columnFilters]);
 
   useEffect(() => {
     if (!mountedRef.current) return;
-    onSelectionChanged?.({
+    onSelectionChangedRef.current?.({
       selectedRows: table.getSelectedRowModel().rows.map((r) => r.original),
       selectedRowIds: Object.keys(engine.rowSelectionState),
     });
-  }, [engine.rowSelectionState]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [engine.rowSelectionState, table]);
 
   const handleCellClick = useCallback(
     (cell: any, event: React.MouseEvent) => {
@@ -432,10 +422,7 @@ function DataGridInner<TData = any>(
 
       <div className="flex-1 overflow-auto">
         <table className="jt-table w-full border-collapse text-grid-base">
-          <GridHeader table={table} showSelectionColumn={showSelectionColumn} columnAlignment={columnAlignment} />
-          {showFloatingFilters && (
-            <FloatingFilter table={table} showSelectionColumn={showSelectionColumn} />
-          )}
+          <GridHeader table={table} showSelectionColumn={showSelectionColumn} columnAlignment={columnAlignment} showFloatingFilters={showFloatingFilters} />
           <GridBody
             table={table}
             density={density}
