@@ -35,8 +35,6 @@ function getNestedValue(obj: any, path: string): any {
   return path.split('.').reduce((acc, part) => acc?.[part], obj);
 }
 
-let columnCounter = 0;
-
 const AMOUNT_FIELD_PATTERN = /\b(amount|price|cost|total|salary|revenue|balance|fee|budget|income|profit|margin|tax|discount|spend|expense|pnl|winnings|billRate|bankBalance|gp|gross|net)\b/i;
 
 function formatWithDecimals(value: any, decimals: number): string {
@@ -56,10 +54,11 @@ function isAmountField(field?: string, headerName?: string): boolean {
 function mapColumnDef<TData>(
   col: ColumnDef<TData>,
   defaultColDef?: Partial<ColumnDef<TData>>,
-  gridEnableRowGroup?: boolean
+  gridEnableRowGroup?: boolean,
+  index?: number
 ): TanStackColumnDef<TData, any> {
   const merged = { ...defaultColDef, ...col };
-  const id = col.colId || col.field || `col_${++columnCounter}`;
+  const id = col.colId || col.field || `col_${index ?? 0}`;
 
   const tanstackCol: TanStackColumnDef<TData, any> = {
     id,
@@ -272,7 +271,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
 
   // ─── Map columns ───
   const tanstackColumns = useMemo(
-    () => columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup)),
+    () => columnDefs.map((c, i) => mapColumnDef(c, defaultColDef, gridEnableRowGroup, i)),
     [columnDefs, defaultColDef, gridEnableRowGroup]
   );
 
@@ -324,28 +323,31 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     },
   });
 
-  // ─── Persist state on changes ───
+  // ─── Persist state on changes (debounced to avoid hammering localStorage during resize drag) ───
   useEffect(() => {
     if (!persistSettings || !gridId) return;
 
-    const state: PersistedGridState = {
-      columnOrder,
-      columnSizing,
-      columnVisibility,
-      sorting: sortingToEntries(sorting),
-      columnFilters: filtersToRecord(columnFilters),
-      grouping,
-      expanded: typeof expanded === 'boolean' ? {} : expanded,
-      pageSize: table.getState().pagination.pageSize,
-      columnPinning: {
-        left: columnPinning.left || [],
-        right: columnPinning.right || [],
-      },
-      columnDecimals,
-      columnAlignment: userAlignment,
-    };
+    const timer = setTimeout(() => {
+      const state: PersistedGridState = {
+        columnOrder,
+        columnSizing,
+        columnVisibility,
+        sorting: sortingToEntries(sorting),
+        columnFilters: filtersToRecord(columnFilters),
+        grouping,
+        expanded: typeof expanded === 'boolean' ? {} : expanded,
+        pageSize: table.getState().pagination.pageSize,
+        columnPinning: {
+          left: columnPinning.left || [],
+          right: columnPinning.right || [],
+        },
+        columnDecimals,
+        columnAlignment: userAlignment,
+      };
+      savePersistedState(gridId, state);
+    }, 300);
 
-    savePersistedState(gridId, state);
+    return () => clearTimeout(timer);
   }, [
     persistSettings, gridId, columnOrder, columnSizing, columnVisibility,
     sorting, columnFilters, grouping, expanded, columnPinning, columnDecimals, userAlignment,

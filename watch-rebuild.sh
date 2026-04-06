@@ -23,11 +23,21 @@ inotifywait -m -r -e modify,create,delete --format '%w%f' "$DIR" 2>/dev/null | w
     npm run build 2>&1 | tail -3
 
     if [ $? -eq 0 ]; then
-        echo "[prdgrid-watch] Build OK. Copying dist to pulse node_modules..."
+        echo "[prdgrid-watch] Build OK. Copying dist to pulse (host + container)..."
+        # Copy on host
         rm -rf "$DEST"
         mkdir -p "$DEST"
         cp -r dist/* "$DEST/"
-        cp package.json "$DEST/"
+
+        # Copy inside container (bypasses volume mount issues) with fixed package.json
+        docker exec pulse-client sh -c "
+          rm -rf /app/node_modules/@jobtalk/datagrid
+          mkdir -p /app/node_modules/@jobtalk/datagrid
+          cp /prdgrid/dist/* /app/node_modules/@jobtalk/datagrid/
+          cat > /app/node_modules/@jobtalk/datagrid/package.json << 'PKGJSON'
+{\"name\":\"@jobtalk/datagrid\",\"version\":\"0.1.0\",\"type\":\"module\",\"main\":\"./index.cjs\",\"module\":\"./index.js\",\"types\":\"./index.d.ts\",\"exports\":{\".\":{\"import\":\"./index.js\",\"require\":\"./index.cjs\",\"types\":\"./index.d.ts\"},\"./styles.css\":\"./style.css\"}}
+PKGJSON
+        " 2>/dev/null
 
         echo "[prdgrid-watch] Clearing Vite cache + restarting pulse-client..."
         docker exec pulse-client rm -rf /app/node_modules/.vite 2>/dev/null

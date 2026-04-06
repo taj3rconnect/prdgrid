@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { flexRender, Header, Column } from '@tanstack/react-table';
+import React, { useCallback, useRef, useMemo } from 'react';
+import { flexRender, Header, Column, Table } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 
 interface HeaderCellProps<TData> {
@@ -11,64 +11,80 @@ interface HeaderCellProps<TData> {
   onContextMenu?: (column: Column<TData, unknown>, e: React.MouseEvent) => void;
 }
 
-// Shared auto-size helpers used by both resize handle and context menu
-function measureColumnWidths(resizeRef: React.RefObject<HTMLDivElement | null>, _column: any) {
-  const headerEl = resizeRef.current?.closest('th');
-  const tableEl = headerEl?.closest('table');
-  if (!tableEl || !headerEl) return null;
-
-  const colIndex = Array.from(headerEl.parentElement!.children).indexOf(headerEl);
-  const rows = tableEl.querySelectorAll('tbody tr');
-
-  // Helper: measure trimmed text width using off-screen element
-  const measureText = (el: Element, container: Element): number => {
-    const text = (el.textContent || '').trim();
-    if (!text) return 0;
-    const m = document.createElement('span');
-    m.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:inherit;pointer-events:none;';
-    m.textContent = text;
-    container.appendChild(m);
-    const w = m.offsetWidth;
-    container.removeChild(m);
-    return w;
-  };
-
-  // Measure header text
-  let headerWidth = 40;
-  const headerSpans = headerEl.querySelectorAll('span');
-  headerSpans.forEach((s) => {
-    const w = measureText(s, headerEl);
-    if (w > 0) headerWidth = Math.max(headerWidth, w + 24);
-  });
-
-  // Measure widest cell content (trimmed)
-  let contentWidth = 0;
-  rows.forEach((row) => {
-    const cell = row.children[colIndex] as HTMLElement | undefined;
-    if (cell) {
-      const content = cell.querySelector('span') || cell;
-      const w = measureText(content, cell);
-      if (w > 0) contentWidth = Math.max(contentWidth, w + 20);
-    }
-  });
-
-  return {
-    headerWidth,
-    contentWidth: Math.max(headerWidth, contentWidth),
-  };
+// ─── Pinning offset helpers ─────────────────────────────────────────
+export function getLeftPinOffset<TData>(table: Table<TData>, columnId: string): number {
+  const left = table.getState().columnPinning.left ?? [];
+  let offset = 0;
+  for (const id of left) {
+    if (id === columnId) break;
+    const col = table.getColumn(id);
+    if (col) offset += col.getSize();
+  }
+  return offset;
 }
 
+export function getRightPinOffset<TData>(table: Table<TData>, columnId: string): number {
+  const right = table.getState().columnPinning.right ?? [];
+  let offset = 0;
+  for (let i = right.length - 1; i >= 0; i--) {
+    if (right[i] === columnId) break;
+    const col = table.getColumn(right[i]!);
+    if (col) offset += col.getSize();
+  }
+  return offset;
+}
+
+// ─── Text measurement helper ────────────────────────────────────────
+function measureText(el: Element, container: Element): number {
+  const text = (el.textContent || '').trim();
+  if (!text) return 0;
+  const m = document.createElement('span');
+  m.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:inherit;font-size:inherit;pointer-events:none;';
+  m.textContent = text;
+  container.appendChild(m);
+  const w = m.offsetWidth;
+  container.removeChild(m);
+  return w;
+}
+
+// ─── Auto-size (used by double-click on resize handle) ──────────────
 export function autoSizeColumn(
   header: Header<any, unknown>,
   resizeRef: React.RefObject<HTMLDivElement | null>,
   mode: 'header' | 'content'
 ) {
-  const table = header.getContext().table;
   const column = header.column;
-  const widths = measureColumnWidths(resizeRef, column);
-  if (!widths) { column.resetSize(); return; }
-  const size = mode === 'header' ? widths.headerWidth : widths.contentWidth;
-  table.setColumnSizing((prev: any) => ({ ...prev, [column.id]: size }));
+  const headerEl = resizeRef.current?.closest('th');
+  const tableEl = headerEl?.closest('table');
+  if (!tableEl || !headerEl) { column.resetSize(); return; }
+
+  const colIndex = Array.from(headerEl.parentElement!.children).indexOf(headerEl);
+  const rows = tableEl.querySelectorAll('tbody tr');
+
+  let headerWidth = 40;
+  headerEl.querySelectorAll('span').forEach((s) => {
+    const w = measureText(s, headerEl);
+    if (w > 0) headerWidth = Math.max(headerWidth, w + 24);
+  });
+
+  const table = header.getContext().table;
+
+  if (mode === 'header') {
+    table.setColumnSizing((old: any) => ({ ...old, [column.id]: headerWidth }));
+    return;
+  }
+
+  let maxWidth = headerWidth;
+  rows.forEach((row) => {
+    const cell = row.children[colIndex] as HTMLElement | undefined;
+    if (cell) {
+      const content = cell.querySelector('span') || cell;
+      const w = measureText(content, cell);
+      if (w > 0) maxWidth = Math.max(maxWidth, w + 20);
+    }
+  });
+
+  table.setColumnSizing((old: any) => ({ ...old, [column.id]: maxWidth }));
 }
 
 export function HeaderCell<TData>({
@@ -81,6 +97,7 @@ export function HeaderCell<TData>({
 }: HeaderCellProps<TData>) {
   const resizeRef = useRef<HTMLDivElement>(null);
   const column = header.column;
+  const table = header.getContext().table;
   const meta = column.columnDef.meta as any;
   const canSort = column.getCanSort();
   const sorted = column.getIsSorted();
@@ -98,6 +115,22 @@ export function HeaderCell<TData>({
     [canSort, column]
   );
 
+  // Compute text alignment from alignment prop or cellStyle (without calling cellStyle with empty args)
+  const textAlign = useMemo(() => {
+    if (alignment) return alignment;
+    if (meta?.cellStyle && typeof meta.cellStyle !== 'function') {
+      return meta.cellStyle?.textAlign;
+    }
+    return undefined;
+  }, [alignment, meta?.cellStyle]);
+
+  // Compute pinning offset
+  const pinStyle = useMemo(() => {
+    if (isPinned === 'left') return { left: getLeftPinOffset(table, column.id) };
+    if (isPinned === 'right') return { right: getRightPinOffset(table, column.id) };
+    return {};
+  }, [isPinned, table, column.id]);
+
   const sortIcon = sorted
     ? sorted === 'asc'
       ? '\u25B2'
@@ -105,6 +138,7 @@ export function HeaderCell<TData>({
     : '';
 
   const sortIndex = column.getSortIndex();
+
   return (
     <th
       className={clsx(
@@ -112,19 +146,12 @@ export function HeaderCell<TData>({
         'relative select-none border-r border-grid-border bg-grid-header-bg px-3 py-2 text-left text-grid-sm font-semibold text-grid-header-text',
         canSort && 'cursor-pointer hover:bg-grid-accent-light',
         isPinned && 'sticky z-10',
-        isPinned === 'left' && 'left-0',
-        isPinned === 'right' && 'right-0',
         isGrouped && 'bg-grid-accent-light'
       )}
       style={{
         width: header.getSize(),
-        textAlign: alignment || (() => {
-          if (meta?.cellStyle && typeof meta.cellStyle === 'function') {
-            const s = meta.cellStyle({});
-            return s?.textAlign;
-          }
-          return meta?.cellStyle?.textAlign;
-        })(),
+        textAlign,
+        ...pinStyle,
       }}
       title={meta?.headerTooltip}
       onContextMenu={(e) => onContextMenu?.(column, e)}
@@ -150,7 +177,6 @@ export function HeaderCell<TData>({
         }}
         onClick={handleSort}
       >
-        {/* Group indicator — visible on hover or when actively grouped */}
         {canGroup && (
           <button
             className={clsx(
@@ -169,25 +195,23 @@ export function HeaderCell<TData>({
           </button>
         )}
 
-        {/* Header text */}
         <span className="flex-1 truncate">
           {header.isPlaceholder
             ? null
             : flexRender(column.columnDef.header, header.getContext())}
         </span>
 
-        {/* Sort indicator */}
         {sortIcon && (
           <span className="ml-1 text-grid-accent text-[10px]">
             {sortIcon}
-            {sortIndex !== undefined && sortIndex > 0 && (
+            {sortIndex !== undefined && sortIndex >= 0 && (
               <sup className="text-[8px] ml-0.5">{sortIndex + 1}</sup>
             )}
           </span>
         )}
       </div>
 
-      {/* Resize handle */}
+      {/* Resize handle — pass reference, not invocation */}
       {column.getCanResize() && (
         <div
           ref={resizeRef}

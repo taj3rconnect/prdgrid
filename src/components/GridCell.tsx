@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { Cell, flexRender } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 import { densityPadding } from '../core/gridUtils';
+import { getLeftPinOffset, getRightPinOffset } from './HeaderCell';
 import type { ColumnDef, ColumnMeta, GridDensity } from '../types';
 
 interface GridCellProps<TData> {
@@ -10,6 +11,7 @@ interface GridCellProps<TData> {
   density: GridDensity;
   alignment?: 'left' | 'center' | 'right';
   decimals?: number;
+  indentPx?: number;
   onCellClick?: (cell: Cell<TData, unknown>, event: React.MouseEvent) => void;
   onCellDoubleClick?: (cell: Cell<TData, unknown>, event: React.MouseEvent) => void;
   onCellValueChanged?: (cell: Cell<TData, unknown>, oldValue: any, newValue: any) => void;
@@ -21,6 +23,7 @@ export const GridCell = React.memo(function GridCell<TData>({
   density,
   alignment,
   decimals,
+  indentPx = 0,
   onCellClick,
   onCellDoubleClick,
   onCellValueChanged,
@@ -189,11 +192,14 @@ export const GridCell = React.memo(function GridCell<TData>({
         padClass,
         isEditing && 'bg-grid-cell-edit ring-2 ring-grid-accent ring-inset',
         isPinned && 'sticky z-10 bg-grid-bg',
-        isPinned === 'left' && 'left-0',
-        isPinned === 'right' && 'right-0',
         cellClassName
       )}
-      style={cellStyle}
+      style={{
+        ...cellStyle,
+        ...(indentPx > 0 ? { paddingLeft: indentPx + 12 } : {}),
+        ...(isPinned === 'left' ? { left: getLeftPinOffset(cell.getContext().table, cell.column.id) } : {}),
+        ...(isPinned === 'right' ? { right: getRightPinOffset(cell.getContext().table, cell.column.id) } : {}),
+      }}
       onClick={(e) => onCellClick?.(cell, e)}
       onDoubleClick={(e) => {
         onCellDoubleClick?.(cell, e);
