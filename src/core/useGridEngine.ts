@@ -21,6 +21,7 @@ import {
   ColumnPinningState,
 } from '@tanstack/react-table';
 import { entriesToSorting, sortingToEntries, filtersToRecord, recordToFilters } from './gridUtils';
+import { filterPanelFilterFn } from '../components/FilterPanel';
 import type {
   DataGridProps,
   ColumnDef,
@@ -316,6 +317,9 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     enableSorting: true,
     enableFilters: true,
     enableMultiSort: true,
+    filterFns: {
+      filterPanel: filterPanelFilterFn,
+    },
     getRowId: getRowId ? (row, index) => getRowId(row, index) : undefined,
     initialState: {
       pagination: { pageSize },

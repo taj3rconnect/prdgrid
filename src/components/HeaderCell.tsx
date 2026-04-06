@@ -27,9 +27,12 @@ export function HeaderCell<TData>({
   const isPinned = column.getIsPinned();
 
   const handleSort = useCallback(
-    (e: React.MouseEvent) => {
+    (_e: React.MouseEvent) => {
       if (!canSort) return;
-      column.toggleSorting(undefined, e.shiftKey);
+      // Single column sort only: toggle asc <-> desc
+      const currentSort = column.getIsSorted();
+      const nextDesc = currentSort === 'asc'; // asc -> desc, anything else -> asc
+      column.toggleSorting(nextDesc, false);
     },
     [canSort, column]
   );
