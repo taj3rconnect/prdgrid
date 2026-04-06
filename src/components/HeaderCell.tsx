@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { flexRender, Header } from '@tanstack/react-table';
+import React, { useCallback, useRef, useState } from 'react';
+import { flexRender, Header, Column } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 
 interface HeaderCellProps<TData> {
@@ -8,6 +8,67 @@ interface HeaderCellProps<TData> {
   onDragStart?: (columnId: string) => void;
   onDragOver?: (columnId: string) => void;
   onDragEnd?: () => void;
+  onContextMenu?: (column: Column<TData, unknown>, e: React.MouseEvent) => void;
+}
+
+// Shared auto-size helpers used by both resize handle and context menu
+function measureColumnWidths(resizeRef: React.RefObject<HTMLDivElement | null>, _column: any) {
+  const headerEl = resizeRef.current?.closest('th');
+  const tableEl = headerEl?.closest('table');
+  if (!tableEl || !headerEl) return null;
+
+  const colIndex = Array.from(headerEl.parentElement!.children).indexOf(headerEl);
+  const rows = tableEl.querySelectorAll('tbody tr');
+
+  // Helper: measure trimmed text width using off-screen element
+  const measureText = (el: Element, container: Element): number => {
+    const text = (el.textContent || '').trim();
+    if (!text) return 0;
+    const m = document.createElement('span');
+    m.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:inherit;pointer-events:none;';
+    m.textContent = text;
+    container.appendChild(m);
+    const w = m.offsetWidth;
+    container.removeChild(m);
+    return w;
+  };
+
+  // Measure header text
+  let headerWidth = 40;
+  const headerSpans = headerEl.querySelectorAll('span');
+  headerSpans.forEach((s) => {
+    const w = measureText(s, headerEl);
+    if (w > 0) headerWidth = Math.max(headerWidth, w + 24);
+  });
+
+  // Measure widest cell content (trimmed)
+  let contentWidth = 0;
+  rows.forEach((row) => {
+    const cell = row.children[colIndex] as HTMLElement | undefined;
+    if (cell) {
+      const content = cell.querySelector('span') || cell;
+      const w = measureText(content, cell);
+      if (w > 0) contentWidth = Math.max(contentWidth, w + 20);
+    }
+  });
+
+  return {
+    headerWidth,
+    contentWidth: Math.max(headerWidth, contentWidth),
+  };
+}
+
+export function autoSizeColumn(
+  header: Header<any, unknown>,
+  resizeRef: React.RefObject<HTMLDivElement | null>,
+  mode: 'header' | 'content'
+) {
+  const table = header.getContext().table;
+  const column = header.column;
+  const widths = measureColumnWidths(resizeRef, column);
+  if (!widths) { column.resetSize(); return; }
+  const size = mode === 'header' ? widths.headerWidth : widths.contentWidth;
+  table.setColumnSizing((prev: any) => ({ ...prev, [column.id]: size }));
 }
 
 export function HeaderCell<TData>({
@@ -16,8 +77,10 @@ export function HeaderCell<TData>({
   onDragStart,
   onDragOver,
   onDragEnd,
+  onContextMenu,
 }: HeaderCellProps<TData>) {
   const resizeRef = useRef<HTMLDivElement>(null);
+  const [isNearResize, setIsNearResize] = useState(false);
   const column = header.column;
   const meta = column.columnDef.meta as any;
   const canSort = column.getCanSort();
@@ -29,13 +92,24 @@ export function HeaderCell<TData>({
   const handleSort = useCallback(
     (_e: React.MouseEvent) => {
       if (!canSort) return;
-      // Single column sort only: toggle asc <-> desc
       const currentSort = column.getIsSorted();
-      const nextDesc = currentSort === 'asc'; // asc -> desc, anything else -> asc
+      const nextDesc = currentSort === 'asc';
       column.toggleSorting(nextDesc, false);
     },
     [canSort, column]
   );
+
+  // Track mouse position to disable draggable near the resize edge
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLTableCellElement>) => {
+    const th = e.currentTarget;
+    const rect = th.getBoundingClientRect();
+    const distFromRight = rect.right - e.clientX;
+    setIsNearResize(distFromRight < 12);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsNearResize(false);
+  }, []);
 
   const sortIcon = sorted
     ? sorted === 'asc'
@@ -44,11 +118,12 @@ export function HeaderCell<TData>({
     : '';
 
   const sortIndex = column.getSortIndex();
+  const canDrag = !meta?.colDef?.suppressMovable && !isNearResize;
 
   return (
     <th
       className={clsx(
-        'jt-header-cell',
+        'jt-header-cell group/header',
         'relative select-none border-r border-grid-border bg-grid-header-bg px-3 py-2 text-left text-grid-sm font-semibold text-grid-header-text',
         canSort && 'cursor-pointer hover:bg-grid-accent-light',
         isPinned && 'sticky z-10',
@@ -69,8 +144,12 @@ export function HeaderCell<TData>({
         })(),
       }}
       title={meta?.headerTooltip}
-      draggable={!meta?.colDef?.suppressMovable}
+      draggable={canDrag}
+      onContextMenu={(e) => onContextMenu?.(column, e)}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       onDragStart={(e) => {
+        if (isNearResize) { e.preventDefault(); return; }
         e.dataTransfer.setData('text/plain', column.id);
         onDragStart?.(column.id);
       }}
@@ -88,14 +167,14 @@ export function HeaderCell<TData>({
         alignment === 'right' && 'justify-end',
         alignment === 'center' && 'justify-center',
       )} onClick={handleSort}>
-        {/* Group indicator */}
+        {/* Group indicator — visible on hover or when actively grouped */}
         {canGroup && (
           <button
             className={clsx(
-              'mr-1 flex h-4 w-4 items-center justify-center rounded text-[10px] leading-none',
+              'mr-1 flex h-4 w-4 items-center justify-center rounded text-[10px] leading-none transition-opacity',
               isGrouped
-                ? 'bg-grid-accent text-white'
-                : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                ? 'bg-grid-accent text-white opacity-100'
+                : 'bg-gray-200 text-gray-500 hover:bg-gray-300 opacity-0 group-hover/header:opacity-100'
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -129,19 +208,32 @@ export function HeaderCell<TData>({
       {column.getCanResize() && (
         <div
           ref={resizeRef}
-          className={clsx(
-            'absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none',
-            header.column.getIsResizing()
-              ? 'bg-grid-accent opacity-100'
-              : 'hover:bg-grid-accent opacity-0 hover:opacity-50'
-          )}
-          onMouseDown={header.getResizeHandler()}
-          onTouchStart={header.getResizeHandler()}
-          onDoubleClick={() => {
-            // Auto-size column on double-click
-            column.resetSize();
+          className="absolute right-0 top-0 h-full w-4 -mr-2 cursor-col-resize select-none touch-none group/resize z-20"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            header.getResizeHandler()(e);
           }}
-        />
+          onTouchStart={(e) => {
+            e.stopPropagation();
+            header.getResizeHandler()(e);
+          }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            autoSizeColumn(header, resizeRef, 'content');
+          }}
+          // Prevent drag from starting on the resize handle
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
+        >
+          <div
+            className={clsx(
+              'absolute right-[6px] top-1 bottom-1 rounded-full transition-all',
+              header.column.getIsResizing()
+                ? 'w-[3px] bg-grid-accent opacity-100'
+                : 'w-[2px] bg-gray-300 opacity-40 group-hover/resize:w-[3px] group-hover/resize:bg-grid-accent group-hover/resize:opacity-100'
+            )}
+          />
+        </div>
       )}
     </th>
   );

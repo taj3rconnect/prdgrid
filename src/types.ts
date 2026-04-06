@@ -504,6 +504,12 @@ export interface DataGridProps<TData = any> {
   floatingFilters?: boolean;
   /** Show status bar */
   statusBar?: boolean;
+  /** Show totals footer row. true = sum, or pass config object */
+  totalsRow?: boolean | { aggFunc?: 'sum' | 'avg' | 'count' | 'min' | 'max'; label?: string };
+  /** Row-level style function for conditional row highlighting */
+  rowStyle?: (data: TData) => import('react').CSSProperties | undefined;
+  /** Column view presets for quick toggling */
+  columnPresets?: { label: string; columns: string[] }[];
 
   // ─── Toolbar ───
   toolbar?: ToolbarConfig | boolean;

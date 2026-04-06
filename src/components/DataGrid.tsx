@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { clsx } from 'clsx';
 import { useGridEngine } from '../core/useGridEngine';
-import { sortingToEntries, entriesToSorting, filtersToRecord, recordToFilters } from '../core/gridUtils';
+import { sortingToEntries, entriesToSorting, filtersToRecord, recordToFilters, getColumnHeader } from '../core/gridUtils';
 import { GridToolbar } from './GridToolbar';
 import { GridHeader } from './GridHeader';
 import { GridBody } from './GridBody';
@@ -11,6 +11,7 @@ import { ColumnManager } from './ColumnManager';
 import { Pagination } from './Pagination';
 import { StatusBar } from './StatusBar';
 import { Overlay } from './Overlay';
+import { TotalsRow } from './TotalsRow';
 import { exportToCsv } from '../export/csvExport';
 import type {
   DataGridProps,
@@ -120,6 +121,9 @@ function DataGridInner<TData = any>(
     onSelectionChanged,
     onSortChanged,
     onFilterChanged,
+    totalsRow: totalsRowProp,
+    rowStyle,
+    columnPresets,
   } = merged;
 
   const mergedProps = useMemo<DataGridProps<TData>>(() => ({
@@ -156,6 +160,14 @@ function DataGridInner<TData = any>(
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [showFloatingFilters, setShowFloatingFilters] = useState<boolean>(() => {
+    if (props.gridId) {
+      const stored = localStorage.getItem(`jt-grid-${props.gridId}-ff`);
+      if (stored !== null) return stored === '1';
+    }
+    return floatingFilters;
+  });
   const mountedRef = useRef(false);
 
   const toolbarConfig: ToolbarConfig = useMemo(() =>
@@ -307,6 +319,72 @@ function DataGridInner<TData = any>(
 
   const heightStyle = typeof height === 'number' ? `${height}px` : height;
 
+  // ─── Ctrl+C copy handler ───
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!(e.ctrlKey || e.metaKey) || e.key !== 'c') return;
+
+    // If selected rows exist, copy them as tab-delimited
+    const selected = table.getSelectedRowModel().rows;
+    if (selected.length > 0) {
+      const visibleCols = table.getVisibleLeafColumns();
+      const headers = visibleCols.map(c => getColumnHeader(c));
+      const lines = selected.map(row =>
+        visibleCols.map(col => {
+          const val = row.getValue(col.id);
+          return val == null ? '' : String(val);
+        }).join('\t')
+      );
+      const text = [headers.join('\t'), ...lines].join('\n');
+      navigator.clipboard?.writeText(text);
+      e.preventDefault();
+      return;
+    }
+
+    // Otherwise copy focused cell value
+    const active = document.activeElement;
+    if (active?.classList.contains('jt-cell')) {
+      const cellText = active.textContent || '';
+      navigator.clipboard?.writeText(cellText.trim());
+      e.preventDefault();
+    }
+  }, [table]);
+
+  const handleToggleFloatingFilters = useCallback(() => {
+    setShowFloatingFilters((prev) => {
+      const next = !prev;
+      if (props.gridId) {
+        localStorage.setItem(`jt-grid-${props.gridId}-ff`, next ? '1' : '0');
+      }
+      return next;
+    });
+  }, [props.gridId]);
+
+  const hasActiveFilters = engine.columnFilters.length > 0 || globalFilter !== '';
+
+  const handlePresetChange = useCallback((presetLabel: string | null) => {
+    setActivePreset(presetLabel);
+    if (!presetLabel) {
+      // "All" — show all columns
+      const vis: Record<string, boolean> = {};
+      table.getAllLeafColumns().forEach((c) => { vis[c.id] = true; });
+      table.setColumnVisibility(vis);
+    } else {
+      const preset = columnPresets?.find((p) => p.label === presetLabel);
+      if (!preset) return;
+      const allowedSet = new Set(preset.columns);
+      const vis: Record<string, boolean> = {};
+      table.getAllLeafColumns().forEach((c) => {
+        vis[c.id] = allowedSet.has(c.id);
+      });
+      table.setColumnVisibility(vis);
+    }
+  }, [table, columnPresets]);
+
+  const handleClearFilters = useCallback(() => {
+    engine.setColumnFilters([]);
+    setGlobalFilter('');
+  }, [engine, setGlobalFilter]);
+
   return (
     <div
       ref={containerRef}
@@ -317,6 +395,7 @@ function DataGridInner<TData = any>(
         className
       )}
       style={{ height: heightStyle, ...themeStyle }}
+      onKeyDown={handleKeyDown}
     >
       {Object.keys(toolbarConfig).length > 0 && (
         <GridToolbar
@@ -335,6 +414,11 @@ function DataGridInner<TData = any>(
           onExportCsv={() => gridApi.exportCsv()}
           onExportExcel={() => gridApi.exportExcel()}
           onExportImage={() => gridApi.exportImage()}
+          columnPresets={columnPresets}
+          activePreset={activePreset}
+          onPresetChange={handlePresetChange}
+          showFloatingFilters={showFloatingFilters}
+          onToggleFloatingFilters={handleToggleFloatingFilters}
         />
       )}
 
@@ -349,7 +433,7 @@ function DataGridInner<TData = any>(
       <div className="flex-1 overflow-auto">
         <table className="jt-table w-full border-collapse text-grid-base">
           <GridHeader table={table} showSelectionColumn={showSelectionColumn} columnAlignment={columnAlignment} />
-          {floatingFilters && (
+          {showFloatingFilters && (
             <FloatingFilter table={table} showSelectionColumn={showSelectionColumn} />
           )}
           <GridBody
@@ -359,10 +443,22 @@ function DataGridInner<TData = any>(
             columnDecimals={columnDecimals}
             noRowsComponent={noRowsComponent}
             noRowsMessage={noRowsMessage}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={handleClearFilters}
             onCellClick={handleCellClick}
             onCellDoubleClick={handleCellDoubleClick}
             onCellValueChanged={handleCellValueChanged}
+            rowStyle={rowStyle}
           />
+          {totalsRowProp && (
+            <TotalsRow
+              table={table}
+              config={typeof totalsRowProp === 'object' ? totalsRowProp : {}}
+              showSelectionColumn={showSelectionColumn}
+              density={density}
+              columnAlignment={columnAlignment}
+            />
+          )}
         </table>
       </div>
 

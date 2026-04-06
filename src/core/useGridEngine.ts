@@ -72,11 +72,12 @@ function mapColumnDef<TData>(
         : undefined,
     enableSorting: merged.sortable !== false,
     enableColumnFilter: merged.filter !== false && merged.filter !== undefined,
+    filterFn: merged.filter ? filterPanelFilterFn as any : undefined,
     enableGrouping: merged.enableRowGroup === true || gridEnableRowGroup === true,
     enableResizing: merged.resizable !== false,
     enableHiding: merged.lockVisible !== true,
     size: merged.width || 150,
-    minSize: merged.minWidth || 50,
+    minSize: merged.minWidth ?? 1,
     maxSize: merged.maxWidth || 1000,
     meta: {
       colDef: col,
@@ -272,7 +273,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
   // ─── Map columns ───
   const tanstackColumns = useMemo(
     () => columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup)),
-    [columnDefs, defaultColDef]
+    [columnDefs, defaultColDef, gridEnableRowGroup]
   );
 
   // ─── Table instance ───
@@ -317,9 +318,6 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     enableSorting: true,
     enableFilters: true,
     enableMultiSort: true,
-    filterFns: {
-      filterPanel: filterPanelFilterFn,
-    },
     getRowId: getRowId ? (row, index) => getRowId(row, index) : undefined,
     initialState: {
       pagination: { pageSize },
