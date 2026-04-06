@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Table, Column } from '@tanstack/react-table';
 import { HeaderCell } from './HeaderCell';
 import { HeaderContextMenu } from './HeaderContextMenu';
@@ -82,11 +83,14 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
         ))}
       </thead>
 
-      <HeaderContextMenu
-        column={ctxColumn}
-        position={ctxPosition}
-        onClose={handleCloseContextMenu}
-      />
+      {createPortal(
+        <HeaderContextMenu
+          column={ctxColumn}
+          position={ctxPosition}
+          onClose={handleCloseContextMenu}
+        />,
+        document.body
+      )}
     </>
   );
 }
