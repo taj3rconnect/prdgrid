@@ -326,6 +326,10 @@ function DataGridInner<TData = any>(
           onGlobalFilterChange={setGlobalFilter}
           density={density}
           onDensityChange={setDensity}
+          sorting={engine.sorting}
+          onSortingChange={engine.setSorting}
+          columnFilters={engine.columnFilters}
+          onColumnFiltersChange={engine.setColumnFilters}
           onResetState={resetState}
           onToggleColumnManager={() => setShowColumnManager(!showColumnManager)}
           onExportCsv={() => gridApi.exportCsv()}

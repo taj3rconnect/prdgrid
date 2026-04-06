@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Table } from '@tanstack/react-table';
+import { Table, SortingState, ColumnFiltersState } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 import type { ToolbarConfig, GridDensity, ExportToolbarConfig } from '../types';
+import { SortPanel } from './SortPanel';
+import { FilterPanel } from './FilterPanel';
 
 interface GridToolbarProps<TData> {
   table: Table<TData>;
@@ -10,6 +12,10 @@ interface GridToolbarProps<TData> {
   onGlobalFilterChange: (value: string) => void;
   density: GridDensity;
   onDensityChange: (density: GridDensity) => void;
+  sorting: SortingState;
+  onSortingChange: (sorting: SortingState) => void;
+  columnFilters: ColumnFiltersState;
+  onColumnFiltersChange: (filters: ColumnFiltersState) => void;
   onResetState: () => void;
   onToggleColumnManager: () => void;
   onExportCsv?: () => void;
@@ -26,6 +32,10 @@ export function GridToolbar<TData>({
   onGlobalFilterChange,
   density,
   onDensityChange,
+  sorting,
+  onSortingChange,
+  columnFilters,
+  onColumnFiltersChange,
   onResetState,
   onToggleColumnManager,
   onExportCsv,
@@ -102,6 +112,20 @@ export function GridToolbar<TData>({
       </span>
 
       <div className="flex-1" />
+
+      {/* Sort Panel */}
+      <SortPanel
+        table={table}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
+      />
+
+      {/* Filter Panel */}
+      <FilterPanel
+        table={table}
+        columnFilters={columnFilters}
+        onColumnFiltersChange={onColumnFiltersChange}
+      />
 
       {/* Reset button */}
       <button

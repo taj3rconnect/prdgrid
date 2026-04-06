@@ -1,5 +1,7 @@
 // ─── Main Component ───
 export { DataGrid } from './components/DataGrid';
+export { SortPanel } from './components/SortPanel';
+export { FilterPanel } from './components/FilterPanel';
 
 // ─── Types ───
 export type {
