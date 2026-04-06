@@ -12,6 +12,7 @@ interface GridBodyProps<TData> {
   noRowsMessage?: string;
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
+  rowStyle?: (data: TData) => React.CSSProperties | undefined;
   onCellClick?: (cell: any, event: React.MouseEvent) => void;
   onCellDoubleClick?: (cell: any, event: React.MouseEvent) => void;
   onCellValueChanged?: (cell: any, oldValue: any, newValue: any) => void;
@@ -26,6 +27,7 @@ export function GridBody<TData>({
   noRowsMessage,
   hasActiveFilters,
   onClearFilters,
+  rowStyle,
   onCellClick,
   onCellDoubleClick,
   onCellValueChanged,
@@ -162,6 +164,7 @@ export function GridBody<TData>({
           columnAlignment={columnAlignment}
           columnDecimals={columnDecimals}
           striped={index % 2 === 1}
+          rowStyle={rowStyle}
           onCellClick={onCellClick}
           onCellDoubleClick={onCellDoubleClick}
           onCellValueChanged={onCellValueChanged}

@@ -11,12 +11,16 @@ interface HeaderContextMenuProps<TData> {
   column: Column<TData, unknown> | null;
   position: MenuPosition | null;
   onClose: () => void;
+  onFitToHeader?: () => void;
+  onFitToContent?: () => void;
 }
 
 export function HeaderContextMenu<TData>({
   column,
   position,
   onClose,
+  onFitToHeader,
+  onFitToContent,
 }: HeaderContextMenuProps<TData>) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -110,9 +114,23 @@ export function HeaderContextMenu<TData>({
   }
 
   if (canResize) {
+    if (onFitToHeader) {
+      items.push({
+        label: 'Fit to Header',
+        icon: '\u2194',
+        action: () => { onFitToHeader(); onClose(); },
+      });
+    }
+    if (onFitToContent) {
+      items.push({
+        label: 'Fit to Content',
+        icon: '\u21C4',
+        action: () => { onFitToContent(); onClose(); },
+      });
+    }
     items.push({
       label: 'Reset Column Width',
-      icon: '\u21C4',
+      icon: '\u21A9',
       action: () => { column.resetSize(); onClose(); },
     });
   }

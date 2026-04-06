@@ -23,6 +23,11 @@ interface GridToolbarProps<TData> {
   onExportImage?: () => void;
   onExportEmail?: () => void;
   onExportSchedule?: () => void;
+  columnPresets?: { label: string; columns: string[] }[];
+  activePreset?: string | null;
+  onPresetChange?: (preset: string | null) => void;
+  showFloatingFilters?: boolean;
+  onToggleFloatingFilters?: () => void;
 }
 
 export function GridToolbar<TData>({
@@ -43,6 +48,11 @@ export function GridToolbar<TData>({
   onExportImage,
   onExportEmail,
   onExportSchedule,
+  columnPresets,
+  activePreset,
+  onPresetChange,
+  showFloatingFilters,
+  onToggleFloatingFilters,
 }: GridToolbarProps<TData>) {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showDensityMenu, setShowDensityMenu] = useState(false);
@@ -106,6 +116,37 @@ export function GridToolbar<TData>({
         </div>
       )}
 
+      {/* Column Presets */}
+      {columnPresets && columnPresets.length > 0 && (
+        <div className="flex items-center gap-1">
+          <button
+            className={clsx(
+              'rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors',
+              !activePreset
+                ? 'bg-grid-accent text-white'
+                : 'bg-gray-100 text-grid-text-secondary hover:bg-gray-200'
+            )}
+            onClick={() => onPresetChange?.(null)}
+          >
+            All
+          </button>
+          {columnPresets.map((p) => (
+            <button
+              key={p.label}
+              className={clsx(
+                'rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors',
+                activePreset === p.label
+                  ? 'bg-grid-accent text-white'
+                  : 'bg-gray-100 text-grid-text-secondary hover:bg-gray-200'
+              )}
+              onClick={() => onPresetChange?.(p.label)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Row count indicator */}
       <span className="text-grid-sm text-grid-text-secondary whitespace-nowrap">
         {hasFilters ? `${filteredRows} of ${totalRows}` : totalRows} rows
@@ -126,6 +167,26 @@ export function GridToolbar<TData>({
         columnFilters={columnFilters}
         onColumnFiltersChange={onColumnFiltersChange}
       />
+
+      {/* Toggle floating filters row */}
+      {onToggleFloatingFilters && (
+        <button
+          className={clsx(
+            'rounded px-2 py-1 text-grid-sm hover:bg-gray-100',
+            showFloatingFilters
+              ? 'text-grid-accent font-medium'
+              : 'text-grid-text-secondary hover:text-grid-text'
+          )}
+          onClick={onToggleFloatingFilters}
+          title={showFloatingFilters ? 'Hide column filters' : 'Show column filters'}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" d="M3 5h18M3 10h18M3 15h18M3 20h18" />
+            <rect x="13" y="12" width="9" height="7" rx="1" fill="currentColor" stroke="currentColor" strokeWidth={1.5} opacity={showFloatingFilters ? 1 : 0.4} />
+            <path d="M15.5 14v1.5l1 1v1m3-3.5v1.5l-1 1v1" stroke={showFloatingFilters ? 'white' : 'currentColor'} strokeWidth={1.2} strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
 
       {/* Reset button */}
       <button

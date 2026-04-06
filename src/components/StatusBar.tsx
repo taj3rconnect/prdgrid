@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Table } from '@tanstack/react-table';
+import { getColumnHeader } from '../core/gridUtils';
 import type { ColumnMeta } from '../types';
 
 interface StatusBarProps<TData> {
@@ -19,9 +20,9 @@ export function StatusBar<TData>({ table }: StatusBarProps<TData>) {
   const totalRows = table.getPreFilteredRowModel().rows.length;
   const filteredRows = table.getFilteredRowModel().rows.length;
   const selectedRows = table.getSelectedRowModel().rows;
+  const rowSelectionState = table.getState().rowSelection;
   const hasFilters = totalRows !== filteredRows;
 
-  // Find numeric columns
   const numericColumns = useMemo(() => {
     return table.getAllLeafColumns().filter((col) => {
       const meta = col.columnDef.meta as ColumnMeta | undefined;
@@ -29,18 +30,18 @@ export function StatusBar<TData>({ table }: StatusBarProps<TData>) {
     });
   }, [table]);
 
-  // Compute aggregates for selected rows (or all visible rows if none selected)
   const aggregates = useMemo<Agg[]>(() => {
     if (numericColumns.length === 0) return [];
 
-    const rows = selectedRows.length > 0
-      ? selectedRows
+    const selected = table.getSelectedRowModel().rows;
+    const rows = selected.length > 0
+      ? selected
       : table.getFilteredRowModel().rows;
 
     if (rows.length === 0) return [];
 
     return numericColumns.map((col) => {
-      const header = typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id;
+      const header = getColumnHeader(col);
       let sum = 0;
       let min = Infinity;
       let max = -Infinity;
@@ -67,7 +68,7 @@ export function StatusBar<TData>({ table }: StatusBarProps<TData>) {
         count,
       };
     }).filter(Boolean) as Agg[];
-  }, [numericColumns, selectedRows, table]);
+  }, [numericColumns, rowSelectionState, table]);
 
   const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 

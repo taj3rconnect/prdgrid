@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Table, SortingState, ColumnSort } from '@tanstack/react-table';
 import { clsx } from 'clsx';
+import { getColumnHeader } from '../core/gridUtils';
 
 interface SortPanelProps<TData> {
   table: Table<TData>;
@@ -22,13 +23,14 @@ export function SortPanel<TData>({ table, sorting, onSortingChange }: SortPanelP
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const sortableColumns = table
-    .getAllLeafColumns()
-    .filter((c) => c.getCanSort())
-    .map((c) => ({
-      id: c.id,
-      name: (typeof c.columnDef.header === 'string' ? c.columnDef.header : c.id) as string,
-    }));
+  const sortableColumns = useMemo(
+    () =>
+      table
+        .getAllLeafColumns()
+        .filter((c) => c.getCanSort())
+        .map((c) => ({ id: c.id, name: getColumnHeader(c) })),
+    [table]
+  );
 
   const usedIds = new Set(sorting.map((s) => s.id));
   const availableColumns = sortableColumns.filter((c) => !usedIds.has(c.id));

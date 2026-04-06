@@ -77,7 +77,7 @@ function mapColumnDef<TData>(
     enableResizing: merged.resizable !== false,
     enableHiding: merged.lockVisible !== true,
     size: merged.width || 150,
-    minSize: merged.minWidth || 50,
+    minSize: merged.minWidth ?? 1,
     maxSize: merged.maxWidth || 1000,
     meta: {
       colDef: col,
@@ -273,7 +273,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
   // ─── Map columns ───
   const tanstackColumns = useMemo(
     () => columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup)),
-    [columnDefs, defaultColDef]
+    [columnDefs, defaultColDef, gridEnableRowGroup]
   );
 
   // ─── Table instance ───

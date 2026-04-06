@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { Table, ColumnFiltersState } from '@tanstack/react-table';
 import { clsx } from 'clsx';
+import { getColumnHeader } from '../core/gridUtils';
 
 type Operator =
   | 'contains' | 'notContains' | 'equals' | 'notEquals' | 'startsWith' | 'endsWith' | 'isEmpty' | 'isNotEmpty'
@@ -61,7 +62,7 @@ function getDefaultOperator(filterType: string | undefined): Operator {
   }
 }
 
-let ruleCounter = 0;
+// ruleCounter moved to useRef inside component
 
 // ─── Check if a filter value is a FilterRule[] from this panel ───
 function isRuleArray(val: unknown): val is FilterRule[] {
@@ -201,8 +202,9 @@ interface FilterPanelProps<TData> {
 }
 
 export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange }: FilterPanelProps<TData>) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const ruleCounterRef = useRef(0);
 
   const filterableColumns = useMemo(
     () =>
@@ -213,7 +215,7 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
           const meta = c.columnDef.meta as any;
           return {
             id: c.id,
-            name: (typeof c.columnDef.header === 'string' ? c.columnDef.header : c.id) as string,
+            name: getColumnHeader(c),
             filterType: meta?.filterType as string | undefined,
           };
         }),
@@ -254,7 +256,7 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
     if (filterableColumns.length === 0) return;
     const col = filterableColumns[0]!;
     const newRule: FilterRule = {
-      id: `rule_${++ruleCounter}`,
+      id: `rule_${++ruleCounterRef.current}`,
       columnId: col.id,
       operator: getDefaultOperator(col.filterType),
       value: '',
@@ -292,7 +294,7 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
         }
         // Re-id if it was a floating filter rule (now user-owned)
         if (updated.id.startsWith('ff_')) {
-          updated.id = `rule_${++ruleCounter}`;
+          updated.id = `rule_${++ruleCounterRef.current}`;
         }
         return updated;
       });
@@ -327,7 +329,7 @@ export function FilterPanel<TData>({ table, columnFilters, onColumnFiltersChange
       >
         <span className="flex items-center gap-1">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
           {activeCount > 0 && (
             <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-grid-accent text-[10px] text-white px-1">

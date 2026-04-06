@@ -12,6 +12,7 @@ interface GridRowProps<TData> {
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
   columnDecimals?: Record<string, number>;
   striped: boolean;
+  rowStyle?: (data: TData) => React.CSSProperties | undefined;
   onCellClick?: (cell: any, event: React.MouseEvent) => void;
   onCellDoubleClick?: (cell: any, event: React.MouseEvent) => void;
   onCellValueChanged?: (cell: any, oldValue: any, newValue: any) => void;
@@ -24,6 +25,7 @@ export const GridRow = React.memo(function GridRow<TData>({
   columnAlignment,
   columnDecimals,
   striped,
+  rowStyle,
   onCellClick,
   onCellDoubleClick,
   onCellValueChanged,
@@ -31,6 +33,7 @@ export const GridRow = React.memo(function GridRow<TData>({
   const isSelected = row.getIsSelected();
   const isGroupRow = row.getIsGrouped();
   const depth = row.depth;
+  const customStyle = rowStyle && !isGroupRow ? rowStyle(row.original) : undefined;
 
   return (
     <tr
@@ -38,11 +41,12 @@ export const GridRow = React.memo(function GridRow<TData>({
         'jt-row',
         'border-b border-grid-border transition-colors',
         isSelected && 'bg-grid-row-selected',
-        !isSelected && striped && 'bg-grid-bg-alt',
-        !isSelected && !striped && 'bg-grid-bg',
+        !isSelected && !customStyle && striped && 'bg-grid-bg-alt',
+        !isSelected && !customStyle && !striped && 'bg-grid-bg',
         !isSelected && 'hover:bg-grid-row-hover',
         isGroupRow && 'bg-grid-header-bg font-medium',
       )}
+      style={customStyle}
       data-row-index={rowIndex}
       data-selected={isSelected}
       data-group={isGroupRow}
