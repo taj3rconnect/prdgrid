@@ -6,3 +6,4 @@ dist/
 docs/
 .vercel
 .gstack/
+dist-v0.1.0-stable/
