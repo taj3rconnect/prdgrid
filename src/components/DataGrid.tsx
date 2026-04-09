@@ -124,6 +124,7 @@ function DataGridInner<TData = any>(
     totalsRow: totalsRowProp,
     rowStyle,
     columnPresets,
+    onRefresh,
   } = merged;
 
   const engine = useGridEngine(merged as DataGridProps<TData>);
@@ -408,7 +409,7 @@ function DataGridInner<TData = any>(
       style={{ height: heightStyle, ...themeStyle, ...styleVars }}
       onKeyDown={handleKeyDown}
     >
-      {Object.keys(toolbarConfig).length > 0 && (
+      {(Object.keys(toolbarConfig).length > 0 || !!onRefresh) && (
         <GridToolbar
           table={table}
           config={toolbarConfig}
@@ -429,6 +430,7 @@ function DataGridInner<TData = any>(
           showFloatingFilters={showFloatingFilters}
           onToggleFloatingFilters={handleToggleFloatingFilters}
           onToggleStylePanel={() => setShowStylePanel((p) => !p)}
+          onRefresh={onRefresh}
         />
       )}
 
