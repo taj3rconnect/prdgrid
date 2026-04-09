@@ -191,7 +191,7 @@ function DataGridInner<TData = any>(
     return vars as React.CSSProperties;
   }, [gridStyles]);
 
-  const showSelectionColumn = rowSelection !== false;
+  const showSelectionColumn = rowSelection !== false && gridStyles.showCheckboxColumn === true;
 
   // ─── Grid API ───
   const gridApi = useMemo<GridApi<TData>>(() => ({
@@ -446,6 +446,7 @@ function DataGridInner<TData = any>(
           <GridBody
             table={table}
             density={density}
+            showSelectionColumn={showSelectionColumn}
             columnAlignment={columnAlignment}
             columnDecimals={columnDecimals}
             noRowsComponent={noRowsComponent}
