@@ -28,6 +28,7 @@ interface GridToolbarProps<TData> {
   onPresetChange?: (preset: string | null) => void;
   showFloatingFilters?: boolean;
   onToggleFloatingFilters?: () => void;
+  onToggleStylePanel?: () => void;
 }
 
 export function GridToolbar<TData>({
@@ -53,6 +54,7 @@ export function GridToolbar<TData>({
   onPresetChange,
   showFloatingFilters,
   onToggleFloatingFilters,
+  onToggleStylePanel,
 }: GridToolbarProps<TData>) {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showDensityMenu, setShowDensityMenu] = useState(false);
@@ -206,6 +208,19 @@ export function GridToolbar<TData>({
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+          </svg>
+        </button>
+      )}
+
+      {/* Style Panel */}
+      {onToggleStylePanel && (
+        <button
+          className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
+          onClick={onToggleStylePanel}
+          title="Style settings"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
           </svg>
         </button>
       )}

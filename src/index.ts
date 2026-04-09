@@ -14,6 +14,7 @@ export type {
   GridTheme,
   GridThemeTokens,
   GridDensity,
+  GridStyleSettings,
 
   // Filter types
   FilterType,

@@ -21,6 +21,10 @@
   --jt-grid-font-sm: 0.75rem;
   --jt-grid-font-base: 0.8125rem;
   --jt-grid-font-lg: 0.875rem;
+  --jt-grid-header-font-family: inherit;
+  --jt-grid-header-font-size: var(--jt-grid-font-sm);
+  --jt-grid-row-font-family: inherit;
+  --jt-grid-row-font-size: var(--jt-grid-font-base);
 }
 
 /* ─── Base Grid Styles ─── */
@@ -50,6 +54,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--jt-grid-header-font-family) !important;
+  font-size: var(--jt-grid-header-font-size) !important;
+  color: var(--jt-grid-header-text) !important;
 }
 
 /* ─── Cell ─── */
@@ -58,6 +65,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   transition: background-color 0.1s ease;
+  font-family: var(--jt-grid-row-font-family) !important;
+  font-size: var(--jt-grid-row-font-size) !important;
 }
 
 .jt-cell:focus {

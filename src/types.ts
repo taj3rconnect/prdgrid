@@ -390,6 +390,8 @@ export interface PersistedGridState {
   columnDecimals?: Record<string, number>;
   /** User-configured column alignment overrides */
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
+  /** User-configured grid style overrides (fonts, colors) */
+  gridStyles?: GridStyleSettings;
 }
 
 // ─── Toolbar Config ──────────────────────────────────────────────────
@@ -408,6 +410,17 @@ export interface ExportToolbarConfig {
   psd?: boolean;
   email?: boolean;
   scheduleEmail?: boolean;
+}
+
+// ─── Style Settings ──────────────────────────────────────────────────
+
+export interface GridStyleSettings {
+  headerFontFamily?: string;
+  headerFontSize?: string;
+  headerFontColor?: string;
+  rowFontFamily?: string;
+  rowFontSize?: string;
+  altRowBgColor?: string;
 }
 
 // ─── Theme ───────────────────────────────────────────────────────────

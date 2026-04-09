@@ -7,6 +7,7 @@ import { GridHeader } from './GridHeader';
 import { GridBody } from './GridBody';
 import { GroupPanel } from './GroupPanel';
 import { ColumnManager } from './ColumnManager';
+import { StylePanel } from './StylePanel';
 import { Pagination } from './Pagination';
 import { StatusBar } from './StatusBar';
 import { Overlay } from './Overlay';
@@ -137,11 +138,14 @@ function DataGridInner<TData = any>(
     setColumnAlignment,
     columnDecimals,
     setColumnDecimals,
+    gridStyles,
+    setGridStyles,
     resetState,
   } = engine;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
+  const [showStylePanel, setShowStylePanel] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [showFloatingFilters, setShowFloatingFilters] = useState<boolean>(() => {
     if (props.gridId) {
@@ -169,6 +173,17 @@ function DataGridInner<TData = any>(
         : {}) as React.CSSProperties,
     [theme]
   );
+
+  const styleVars = useMemo(() => {
+    const vars: Record<string, string> = {};
+    if (gridStyles.headerFontFamily) vars['--jt-grid-header-font-family'] = gridStyles.headerFontFamily;
+    if (gridStyles.headerFontSize) vars['--jt-grid-header-font-size'] = gridStyles.headerFontSize;
+    if (gridStyles.headerFontColor) vars['--jt-grid-header-text'] = gridStyles.headerFontColor;
+    if (gridStyles.rowFontFamily) vars['--jt-grid-row-font-family'] = gridStyles.rowFontFamily;
+    if (gridStyles.rowFontSize) vars['--jt-grid-row-font-size'] = gridStyles.rowFontSize;
+    if (gridStyles.altRowBgColor) vars['--jt-grid-bg-alt'] = gridStyles.altRowBgColor;
+    return vars as React.CSSProperties;
+  }, [gridStyles]);
 
   const showSelectionColumn = rowSelection !== false;
 
@@ -384,7 +399,7 @@ function DataGridInner<TData = any>(
         theme === 'dark' && 'dark',
         className
       )}
-      style={{ height: heightStyle, ...themeStyle }}
+      style={{ height: heightStyle, ...themeStyle, ...styleVars }}
       onKeyDown={handleKeyDown}
     >
       {Object.keys(toolbarConfig).length > 0 && (
@@ -409,6 +424,7 @@ function DataGridInner<TData = any>(
           onPresetChange={handlePresetChange}
           showFloatingFilters={showFloatingFilters}
           onToggleFloatingFilters={handleToggleFloatingFilters}
+          onToggleStylePanel={() => setShowStylePanel((p) => !p)}
         />
       )}
 
@@ -469,6 +485,13 @@ function DataGridInner<TData = any>(
         onColumnDecimalsChange={(colId, decimals) =>
           setColumnDecimals(prev => ({ ...prev, [colId]: decimals }))
         }
+      />
+
+      <StylePanel
+        isOpen={showStylePanel}
+        onClose={() => setShowStylePanel(false)}
+        styles={gridStyles}
+        onStylesChange={setGridStyles}
       />
     </div>
   );
