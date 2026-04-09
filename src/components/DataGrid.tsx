@@ -178,6 +178,10 @@ function DataGridInner<TData = any>(
     const vars: Record<string, string> = {};
     if (gridStyles.headerFontFamily) vars['--jt-grid-header-font-family'] = gridStyles.headerFontFamily;
     if (gridStyles.headerFontSize) vars['--jt-grid-header-font-size'] = gridStyles.headerFontSize;
+    if (gridStyles.headerFontStyle) {
+      vars['--jt-grid-header-font-weight'] = gridStyles.headerFontStyle === 'bold' ? '700' : '400';
+      vars['--jt-grid-header-font-style'] = gridStyles.headerFontStyle === 'italic' ? 'italic' : 'normal';
+    }
     if (gridStyles.headerFontColor) vars['--jt-grid-header-text'] = gridStyles.headerFontColor;
     if (gridStyles.rowFontFamily) vars['--jt-grid-row-font-family'] = gridStyles.rowFontFamily;
     if (gridStyles.rowFontSize) vars['--jt-grid-row-font-size'] = gridStyles.rowFontSize;

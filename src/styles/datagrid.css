@@ -23,6 +23,8 @@
   --jt-grid-font-lg: 0.875rem;
   --jt-grid-header-font-family: inherit;
   --jt-grid-header-font-size: var(--jt-grid-font-sm);
+  --jt-grid-header-font-weight: 600;
+  --jt-grid-header-font-style: normal;
   --jt-grid-row-font-family: inherit;
   --jt-grid-row-font-size: var(--jt-grid-font-base);
 }
@@ -56,6 +58,8 @@
   text-overflow: ellipsis;
   font-family: var(--jt-grid-header-font-family) !important;
   font-size: var(--jt-grid-header-font-size) !important;
+  font-weight: var(--jt-grid-header-font-weight) !important;
+  font-style: var(--jt-grid-header-font-style) !important;
   color: var(--jt-grid-header-text) !important;
 }
 

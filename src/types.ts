@@ -417,6 +417,7 @@ export interface ExportToolbarConfig {
 export interface GridStyleSettings {
   headerFontFamily?: string;
   headerFontSize?: string;
+  headerFontStyle?: 'normal' | 'bold' | 'italic';
   headerFontColor?: string;
   rowFontFamily?: string;
   rowFontSize?: string;
