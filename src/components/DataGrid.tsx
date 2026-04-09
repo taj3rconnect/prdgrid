@@ -8,6 +8,7 @@ import { GridBody } from './GridBody';
 import { GroupPanel } from './GroupPanel';
 import { ColumnManager } from './ColumnManager';
 import { StylePanel } from './StylePanel';
+import { ExportModal } from './ExportModal';
 import { Pagination } from './Pagination';
 import { StatusBar } from './StatusBar';
 import { Overlay } from './Overlay';
@@ -146,6 +147,7 @@ function DataGridInner<TData = any>(
   const containerRef = useRef<HTMLDivElement>(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
   const [showStylePanel, setShowStylePanel] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [showFloatingFilters, setShowFloatingFilters] = useState<boolean>(() => {
     if (props.gridId) {
@@ -420,9 +422,7 @@ function DataGridInner<TData = any>(
           onColumnFiltersChange={engine.setColumnFilters}
           onResetState={resetState}
           onToggleColumnManager={() => setShowColumnManager(!showColumnManager)}
-          onExportCsv={() => gridApi.exportCsv()}
-          onExportExcel={() => gridApi.exportExcel()}
-          onExportImage={() => gridApi.exportImage()}
+          onOpenExportModal={() => setShowExportModal(true)}
           columnPresets={columnPresets}
           activePreset={activePreset}
           onPresetChange={handlePresetChange}
@@ -496,6 +496,17 @@ function DataGridInner<TData = any>(
         onClose={() => setShowStylePanel(false)}
         styles={gridStyles}
         onStylesChange={setGridStyles}
+      />
+
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        table={table}
+        title={merged.gridId || 'Report'}
+        reportType={merged.gridId || 'report'}
+        emailEndpoint={merged.emailExportEndpoint}
+        scheduleEndpoint={merged.scheduleExportEndpoint}
+        fetchHeaders={merged.exportFetchHeaders}
       />
     </div>
   );

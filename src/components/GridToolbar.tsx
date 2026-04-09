@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Table, SortingState, ColumnFiltersState } from '@tanstack/react-table';
 import { clsx } from 'clsx';
-import type { ToolbarConfig, GridDensity, ExportToolbarConfig } from '../types';
+import type { ToolbarConfig, GridDensity } from '../types';
 import { SortPanel } from './SortPanel';
 import { FilterPanel } from './FilterPanel';
 
@@ -18,17 +18,13 @@ interface GridToolbarProps<TData> {
   onColumnFiltersChange: (filters: ColumnFiltersState) => void;
   onResetState: () => void;
   onToggleColumnManager: () => void;
-  onExportCsv?: () => void;
-  onExportExcel?: () => void;
-  onExportImage?: () => void;
-  onExportEmail?: () => void;
-  onExportSchedule?: () => void;
   columnPresets?: { label: string; columns: string[] }[];
   activePreset?: string | null;
   onPresetChange?: (preset: string | null) => void;
   showFloatingFilters?: boolean;
   onToggleFloatingFilters?: () => void;
   onToggleStylePanel?: () => void;
+  onOpenExportModal?: () => void;
 }
 
 export function GridToolbar<TData>({
@@ -44,32 +40,20 @@ export function GridToolbar<TData>({
   onColumnFiltersChange,
   onResetState,
   onToggleColumnManager,
-  onExportCsv,
-  onExportExcel,
-  onExportImage,
-  onExportEmail,
-  onExportSchedule,
   columnPresets,
   activePreset,
   onPresetChange,
   showFloatingFilters,
   onToggleFloatingFilters,
   onToggleStylePanel,
+  onOpenExportModal,
 }: GridToolbarProps<TData>) {
-  const [showExportMenu, setShowExportMenu] = useState(false);
   const [showDensityMenu, setShowDensityMenu] = useState(false);
-  const exportRef = useRef<HTMLDivElement>(null);
   const densityRef = useRef<HTMLDivElement>(null);
-
-  const exportConfig: ExportToolbarConfig =
-    typeof config.export === 'object' ? config.export : {};
 
   // Close dropdowns on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
-        setShowExportMenu(false);
-      }
       if (densityRef.current && !densityRef.current.contains(e.target as Node)) {
         setShowDensityMenu(false);
       }
@@ -259,66 +243,17 @@ export function GridToolbar<TData>({
         </div>
       )}
 
-      {/* Export */}
+      {/* Export — opens full Export Modal */}
       {config.export && (
-        <div ref={exportRef} className="relative">
-          <button
-            className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
-            onClick={() => setShowExportMenu(!showExportMenu)}
-            title="Export"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </button>
-          {showExportMenu && (
-            <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-              {(exportConfig.csv !== false) && (
-                <button
-                  className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-grid-sm text-grid-text hover:bg-gray-50"
-                  onClick={() => { onExportCsv?.(); setShowExportMenu(false); }}
-                >
-                  <span>📄</span> Download CSV
-                </button>
-              )}
-              {exportConfig.excel && (
-                <button
-                  className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-grid-sm text-grid-text hover:bg-gray-50"
-                  onClick={() => { onExportExcel?.(); setShowExportMenu(false); }}
-                >
-                  <span>📊</span> Download Excel
-                </button>
-              )}
-              {exportConfig.psd && (
-                <button
-                  className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-grid-sm text-grid-text hover:bg-gray-50"
-                  onClick={() => { onExportImage?.(); setShowExportMenu(false); }}
-                >
-                  <span>🖼️</span> Export as Image
-                </button>
-              )}
-              {exportConfig.email && (
-                <hr className="my-1 border-gray-200" />
-              )}
-              {exportConfig.email && (
-                <button
-                  className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-grid-sm text-grid-text hover:bg-gray-50"
-                  onClick={() => { onExportEmail?.(); setShowExportMenu(false); }}
-                >
-                  <span>📧</span> Email Report
-                </button>
-              )}
-              {exportConfig.scheduleEmail && (
-                <button
-                  className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-grid-sm text-grid-text hover:bg-gray-50"
-                  onClick={() => { onExportSchedule?.(); setShowExportMenu(false); }}
-                >
-                  <span>🕐</span> Schedule Email
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+        <button
+          className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
+          onClick={onOpenExportModal}
+          title="Export (PDF / CSV / Excel / Email / Schedule)"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </button>
       )}
     </div>
   );
