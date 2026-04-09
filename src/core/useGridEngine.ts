@@ -27,6 +27,7 @@ import type {
   ColumnDef,
   PersistedGridState,
   GridDensity,
+  GridStyleSettings,
 } from '../types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -267,6 +268,10 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     () => persisted?.columnDecimals || {}
   );
 
+  const [gridStyles, setGridStyles] = useState<GridStyleSettings>(
+    () => persisted?.gridStyles || {}
+  );
+
   const pageSize = persisted?.pageSize || paginationPageSize;
 
   // ─── Map columns ───
@@ -343,6 +348,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
         },
         columnDecimals,
         columnAlignment: userAlignment,
+        gridStyles,
       };
       savePersistedState(gridId, state);
     }, 300);
@@ -350,7 +356,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     return () => clearTimeout(timer);
   }, [
     persistSettings, gridId, columnOrder, columnSizing, columnVisibility,
-    sorting, columnFilters, grouping, expanded, columnPinning, columnDecimals, userAlignment,
+    sorting, columnFilters, grouping, expanded, columnPinning, columnDecimals, userAlignment, gridStyles,
   ]);
 
   // ─── Reset state ───
@@ -370,6 +376,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     setColumnPinning({ left: [], right: [] });
     setColumnDecimals({});
     setUserAlignment({});
+    setGridStyles({});
   }, [gridId]);
 
   return {
@@ -400,6 +407,8 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     setColumnAlignment,
     columnDecimals,
     setColumnDecimals,
+    gridStyles,
+    setGridStyles,
     resetState,
   };
 }
