@@ -25,6 +25,7 @@ interface GridToolbarProps<TData> {
   onToggleFloatingFilters?: () => void;
   onToggleStylePanel?: () => void;
   onOpenExportModal?: () => void;
+  onRefresh?: () => void | Promise<void>;
 }
 
 export function GridToolbar<TData>({
@@ -47,8 +48,10 @@ export function GridToolbar<TData>({
   onToggleFloatingFilters,
   onToggleStylePanel,
   onOpenExportModal,
+  onRefresh,
 }: GridToolbarProps<TData>) {
   const [showDensityMenu, setShowDensityMenu] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const densityRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on click outside
@@ -178,7 +181,7 @@ export function GridToolbar<TData>({
       <button
         className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
         onClick={onResetState}
-        title="Reset all settings"
+        title="Reset grid settings to default"
       >
         Reset
       </button>
@@ -241,6 +244,31 @@ export function GridToolbar<TData>({
             </div>
           )}
         </div>
+      )}
+
+      {/* Refresh */}
+      {onRefresh && (
+        <>
+          <style>{`@keyframes jt-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+          <button
+            className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text disabled:opacity-40 disabled:cursor-default"
+            disabled={refreshing}
+            onClick={async () => {
+              if (refreshing) return;
+              setRefreshing(true);
+              try { await onRefresh(); } finally { setRefreshing(false); }
+            }}
+            title="Refresh data"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+              style={refreshing ? { animation: 'jt-spin 0.7s linear infinite' } : undefined}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </>
       )}
 
       {/* Export — opens full Export Modal */}

@@ -566,4 +566,6 @@ export interface DataGridProps<TData = any> {
   onColumnMoved?: (event: ColumnMovedEvent) => void;
   onColumnResized?: (event: ColumnResizedEvent) => void;
   onGridStateChanged?: (event: GridStateChangedEvent) => void;
+  /** Called when user clicks the refresh button in the toolbar */
+  onRefresh?: () => void | Promise<void>;
 }
