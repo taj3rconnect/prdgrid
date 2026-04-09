@@ -72,6 +72,24 @@ export function StylePanel({ isOpen, onClose, styles, onStylesChange }: StylePan
                   ))}
                 </select>
               </FieldRow>
+              <FieldRow label="Font Style">
+                <div className="flex gap-1">
+                  {(['normal', 'bold', 'italic'] as const).map((s) => (
+                    <button
+                      key={s}
+                      className={`flex-1 rounded border px-2 py-1 text-xs capitalize transition-colors ${
+                        (styles.headerFontStyle || 'bold') === s
+                          ? 'border-blue-400 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                      style={s === 'bold' ? { fontWeight: 700 } : s === 'italic' ? { fontStyle: 'italic' } : {}}
+                      onClick={() => set('headerFontStyle', s === 'bold' && !styles.headerFontStyle ? undefined : s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </FieldRow>
               <FieldRow label="Font Color">
                 <ColorInput
                   value={styles.headerFontColor}

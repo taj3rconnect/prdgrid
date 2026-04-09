@@ -35,7 +35,7 @@ inotifywait -m -r -e modify,create,delete --format '%w%f' "$DIR" 2>/dev/null | w
           mkdir -p /app/node_modules/@jobtalk/datagrid
           cp /prdgrid/dist/* /app/node_modules/@jobtalk/datagrid/
           cat > /app/node_modules/@jobtalk/datagrid/package.json << 'PKGJSON'
-{\"name\":\"@jobtalk/datagrid\",\"version\":\"0.1.0\",\"type\":\"module\",\"main\":\"./index.cjs\",\"module\":\"./index.js\",\"types\":\"./index.d.ts\",\"exports\":{\".\":{\"import\":\"./index.js\",\"require\":\"./index.cjs\",\"types\":\"./index.d.ts\"},\"./styles.css\":\"./style.css\"}}
+{\"name\":\"@jobtalk/datagrid\",\"version\":\"0.1.0\",\"type\":\"module\",\"main\":\"./index.cjs\",\"module\":\"./index.js\",\"types\":\"./index.d.ts\",\"exports\":{\".\":{\"import\":\"./index.js\",\"require\":\"./index.cjs\",\"types\":\"./index.d.ts\"},\"./styles.css\":{\"import\":\"./style.css\",\"require\":\"./style.css\",\"default\":\"./style.css\"}}}
 PKGJSON
         " 2>/dev/null
 
