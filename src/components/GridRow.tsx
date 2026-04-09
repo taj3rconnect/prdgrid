@@ -9,6 +9,7 @@ interface GridRowProps<TData> {
   row: Row<TData>;
   rowIndex: number;
   density: GridDensity;
+  showSelectionColumn: boolean;
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
   columnDecimals?: Record<string, number>;
   striped: boolean;
@@ -22,6 +23,7 @@ export const GridRow = React.memo(function GridRow<TData>({
   row,
   rowIndex,
   density,
+  showSelectionColumn,
   columnAlignment,
   columnDecimals,
   striped,
@@ -51,7 +53,7 @@ export const GridRow = React.memo(function GridRow<TData>({
       data-selected={isSelected}
       data-group={isGroupRow}
     >
-      {row.getCanSelect() && (
+      {showSelectionColumn && row.getCanSelect() && (
         <td
           className={clsx(
             'jt-cell-checkbox',

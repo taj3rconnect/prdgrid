@@ -29,6 +29,8 @@ export function StylePanel({ isOpen, onClose, styles, onStylesChange }: StylePan
     onStylesChange({ ...styles, [key]: value || undefined });
   };
 
+  const showCheckboxes = styles.showCheckboxColumn === true;
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
       <div
@@ -145,6 +147,24 @@ export function StylePanel({ isOpen, onClose, styles, onStylesChange }: StylePan
                   onChange={(v) => set('altRowBgColor', v)}
                 />
               </FieldRow>
+            </div>
+          </section>
+
+          {/* Grid Options */}
+          <section>
+            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 pb-1 border-b border-gray-100">
+              Grid Options
+            </div>
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
+                  checked={showCheckboxes}
+                  onChange={(e) => onStylesChange({ ...styles, showCheckboxColumn: e.target.checked })}
+                />
+                <span className="text-xs text-gray-600">Show checkboxes</span>
+              </label>
             </div>
           </section>
         </div>

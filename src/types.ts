@@ -422,6 +422,7 @@ export interface GridStyleSettings {
   rowFontFamily?: string;
   rowFontSize?: string;
   altRowBgColor?: string;
+  showCheckboxColumn?: boolean;
 }
 
 // ─── Theme ───────────────────────────────────────────────────────────

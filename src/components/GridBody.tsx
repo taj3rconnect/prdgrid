@@ -6,6 +6,7 @@ import type { GridDensity } from '../types';
 interface GridBodyProps<TData> {
   table: Table<TData>;
   density: GridDensity;
+  showSelectionColumn: boolean;
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
   columnDecimals?: Record<string, number>;
   noRowsComponent?: React.ComponentType;
@@ -21,6 +22,7 @@ interface GridBodyProps<TData> {
 export function GridBody<TData>({
   table,
   density,
+  showSelectionColumn,
   columnAlignment,
   columnDecimals,
   noRowsComponent: NoRowsComp,
@@ -161,6 +163,7 @@ export function GridBody<TData>({
           row={row}
           rowIndex={index}
           density={density}
+          showSelectionColumn={showSelectionColumn}
           columnAlignment={columnAlignment}
           columnDecimals={columnDecimals}
           striped={index % 2 === 1}
