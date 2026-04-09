@@ -1,5 +1,6 @@
 // ─── Main Component ───
 export { DataGrid } from './components/DataGrid';
+export { ExportModal } from './components/ExportModal';
 export { SortPanel } from './components/SortPanel';
 export { FilterPanel } from './components/FilterPanel';
 

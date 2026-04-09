@@ -547,8 +547,12 @@ export interface DataGridProps<TData = any> {
   noRowsMessage?: string;
 
   // ─── Export config ───
-  /** API endpoint for email/schedule export */
+  /** API endpoint for email export */
   emailExportEndpoint?: string;
+  /** API endpoint for scheduled reports (GET list, POST create, DELETE/:id) */
+  scheduleExportEndpoint?: string;
+  /** Extra headers to include in all export API calls (e.g. Authorization) */
+  exportFetchHeaders?: Record<string, string>;
 
   // ─── Events ───
   onGridReady?: (event: GridReadyEvent<TData>) => void;

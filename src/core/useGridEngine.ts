@@ -314,6 +314,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     getPaginationRowModel: pagination ? getPaginationRowModel() : undefined,
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    autoResetPageIndex: false,
     enableRowSelection: rowSelection !== false,
     enableMultiRowSelection: rowSelection === 'multiple',
     enableColumnResizing: true,

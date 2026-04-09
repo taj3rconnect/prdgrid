@@ -37,7 +37,9 @@
   },
   "optionalDependencies": {
     "exceljs": "^4.4.0",
-    "html2canvas": "^1.4.1"
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
