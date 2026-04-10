@@ -70,7 +70,7 @@ export function GridToolbar<TData>({
   const hasFilters = totalRows !== filteredRows;
 
   return (
-    <div className="jt-toolbar flex items-center gap-2 border-b border-grid-border bg-grid-bg px-3 py-2">
+    <div className="jt-toolbar flex items-center gap-2 border-b border-grid-border bg-grid-bg px-3 py-2 overflow-x-auto">
       {/* Search */}
       {config.search && (
         <div className="relative flex-1 max-w-sm">
@@ -161,13 +161,13 @@ export function GridToolbar<TData>({
       {onToggleFloatingFilters && (
         <button
           className={clsx(
-            'rounded px-2 py-1 text-grid-sm hover:bg-gray-100',
+            'jt-tip shrink-0 rounded px-2 py-1 text-grid-sm hover:bg-gray-100',
             showFloatingFilters
               ? 'text-grid-accent font-medium'
               : 'text-grid-text-secondary hover:text-grid-text'
           )}
           onClick={onToggleFloatingFilters}
-          title={showFloatingFilters ? 'Hide column filters' : 'Show column filters'}
+          data-tip={showFloatingFilters ? 'Hide column filters' : 'Show column filters'}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" d="M3 5h18M3 10h18M3 15h18M3 20h18" />
@@ -177,11 +177,14 @@ export function GridToolbar<TData>({
         </button>
       )}
 
+      {/* Divider */}
+      <div className="shrink-0 h-4 w-px bg-gray-200" />
+
       {/* Reset button */}
       <button
-        className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
+        className="jt-tip shrink-0 rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
         onClick={onResetState}
-        title="Reset grid settings to default"
+        data-tip="Reset grid settings"
       >
         Reset
       </button>
@@ -189,9 +192,9 @@ export function GridToolbar<TData>({
       {/* Column Manager */}
       {config.columnManager && (
         <button
-          className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
+          className="jt-tip shrink-0 rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
           onClick={onToggleColumnManager}
-          title="Manage columns"
+          data-tip="Manage columns"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -202,9 +205,9 @@ export function GridToolbar<TData>({
       {/* Style Panel */}
       {onToggleStylePanel && (
         <button
-          className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
+          className="jt-tip shrink-0 rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
           onClick={onToggleStylePanel}
-          title="Style settings"
+          data-tip="Style settings"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
@@ -214,11 +217,11 @@ export function GridToolbar<TData>({
 
       {/* Density */}
       {config.density && (
-        <div ref={densityRef} className="relative">
+        <div ref={densityRef} className="relative shrink-0">
           <button
-            className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
+            className="jt-tip shrink-0 rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
             onClick={() => setShowDensityMenu(!showDensityMenu)}
-            title="Row density"
+            data-tip="Row density"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -248,35 +251,32 @@ export function GridToolbar<TData>({
 
       {/* Refresh */}
       {onRefresh && (
-        <>
-          <style>{`@keyframes jt-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
-          <button
-            className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text disabled:opacity-40 disabled:cursor-default"
-            disabled={refreshing}
-            onClick={async () => {
-              if (refreshing) return;
-              setRefreshing(true);
-              try { await onRefresh(); } finally { setRefreshing(false); }
-            }}
-            title="Refresh data"
+        <button
+          className="jt-tip shrink-0 rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text disabled:opacity-40 disabled:cursor-default"
+          disabled={refreshing}
+          onClick={async () => {
+            if (refreshing) return;
+            setRefreshing(true);
+            try { await onRefresh(); } finally { setRefreshing(false); }
+          }}
+          data-tip="Refresh data"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+            style={refreshing ? { animation: 'jt-spin 0.7s linear infinite' } : undefined}
           >
-            <svg
-              className="h-4 w-4"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-              style={refreshing ? { animation: 'jt-spin 0.7s linear infinite' } : undefined}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        </>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       )}
 
       {/* Export — opens full Export Modal */}
       {config.export && (
         <button
-          className="rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
+          className="jt-tip shrink-0 rounded px-2 py-1 text-grid-sm text-grid-text-secondary hover:bg-gray-100 hover:text-grid-text"
           onClick={onOpenExportModal}
-          title="Export (PDF / CSV / Excel / Email / Schedule)"
+          data-tip="Export (PDF / CSV / Excel)"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

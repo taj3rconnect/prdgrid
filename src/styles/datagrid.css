@@ -143,3 +143,34 @@
     box-shadow: none !important;
   }
 }
+
+@keyframes jt-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─── Toolbar Tooltips ─── */
+.jt-tip {
+  position: relative;
+}
+.jt-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #f9fafb;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 100;
+}
+.jt-tip:hover::after {
+  opacity: 1;
+}
