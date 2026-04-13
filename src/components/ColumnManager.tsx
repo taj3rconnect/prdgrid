@@ -152,7 +152,7 @@ export function ColumnManager<TData>({
                 </div>
 
                 {/* Decimal places (numeric columns only) */}
-                {(meta as any)?.autoNumeric && (
+                {(meta as any)?.isNumericColumn && (
                   <select
                     className="h-5 w-10 rounded border border-gray-200 bg-white text-[10px] text-gray-600 focus:border-grid-accent focus:outline-none"
                     value={columnDecimals[column.id] ?? 0}

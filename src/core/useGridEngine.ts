@@ -36,7 +36,7 @@ function getNestedValue(obj: any, path: string): any {
   return path.split('.').reduce((acc, part) => acc?.[part], obj);
 }
 
-const AMOUNT_FIELD_PATTERN = /\b(amount|price|cost|total|salary|revenue|balance|fee|budget|income|profit|margin|tax|discount|spend|expense|pnl|winnings|billRate|bankBalance|gp|gross|net)\b/i;
+const AMOUNT_FIELD_PATTERN = /\b(amount|price|cost|total|salary|revenue|balance|fee|budget|income|profit|margin|tax|discount|spend|expense|pnl|winnings|billRate|bankBalance|gp|gross|net|rate|percent|pct|markup|inv|pay)\b|%/i;
 
 function formatWithDecimals(value: any, decimals: number): string {
   if (value == null || isNaN(value)) return value;
@@ -93,6 +93,7 @@ function mapColumnDef<TData>(
       cellStyle: merged.cellStyle,
       valueFormatter: merged.valueFormatter || undefined,
       autoNumeric: !merged.valueFormatter && (merged.filter === 'number' || isAmountField(merged.field, merged.headerName)),
+      isNumericColumn: merged.filter === 'number' || isAmountField(merged.field, merged.headerName),
       valueParser: merged.valueParser,
       valueSetter: merged.valueSetter,
       cellValidator: merged.cellValidator,

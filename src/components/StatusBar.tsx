@@ -26,7 +26,7 @@ export function StatusBar<TData>({ table }: StatusBarProps<TData>) {
   const numericColumns = useMemo(() => {
     return table.getAllLeafColumns().filter((col) => {
       const meta = col.columnDef.meta as ColumnMeta | undefined;
-      return meta?.autoNumeric || meta?.filterType === 'number';
+      return meta?.isNumericColumn || meta?.autoNumeric || meta?.filterType === 'number';
     });
   }, [table]);
 

@@ -470,6 +470,8 @@ export interface ColumnMeta<TData = any> {
   headerTooltip?: string;
   /** Auto-detected numeric column (no custom valueFormatter) — formatted by grid */
   autoNumeric?: boolean;
+  /** True for any numeric column (including those with custom valueFormatter) */
+  isNumericColumn?: boolean;
 }
 
 // ─── Density ─────────────────────────────────────────────────────────

@@ -50,6 +50,10 @@ export const GridCell = React.memo(function GridCell<TData>({
   }, [colDef, row.original, rowIndex]);
 
   const formattedValue = useMemo(() => {
+    // If decimals explicitly set on a numeric column, override any valueFormatter
+    if (decimals != null && meta?.isNumericColumn && value != null && !isNaN(Number(value))) {
+      return Number(value).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
     if (meta?.valueFormatter && value !== undefined && value !== null) {
       return meta.valueFormatter({
         value,

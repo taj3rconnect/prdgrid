@@ -54,7 +54,7 @@ export function TotalsRow<TData>({
 
     for (const col of visibleColumns) {
       const meta = col.columnDef.meta as ColumnMeta | undefined;
-      const isNumeric = meta?.autoNumeric || meta?.filterType === 'number';
+      const isNumeric = meta?.isNumericColumn || meta?.autoNumeric || meta?.filterType === 'number';
 
       if (!isNumeric) {
         result.set(col.id, null);
