@@ -353,7 +353,9 @@ export interface GridApi<TData = any> {
   deselectAll(): void;
 
   // Editing
+  /** @deprecated No-op — editing state lives inside cells; kept for vendored-consumer compatibility */
   startEditingCell(rowIndex: number, colId: string): void;
+  /** @deprecated No-op — editing state lives inside cells; kept for vendored-consumer compatibility */
   stopEditing(cancel?: boolean): void;
 
   // Export
@@ -368,6 +370,7 @@ export interface GridApi<TData = any> {
   resetState(): void;
 
   // Misc
+  /** @deprecated No-op — rows re-render reactively from rowData; kept for vendored-consumer compatibility */
   refreshCells(): void;
   ensureRowVisible(rowIndex: number): void;
 }
@@ -616,6 +619,11 @@ export interface DataGridProps<TData = any> {
   gridType?: GridType;
   /** Enable row grouping (available for all grid types) */
   enableRowGroup?: boolean;
+  /**
+   * Regex marking field/header names as money-amount columns (auto right-align
+   * + numeric formatting). Defaults to the built-in AMOUNT_FIELD_PATTERN.
+   */
+  amountFieldPattern?: RegExp;
   /** Unique grid ID for state persistence */
   gridId?: string;
   /** Row data array */

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { clsx } from 'clsx';
 import { Column } from '@tanstack/react-table';
+import { useClickOutside } from '../core/useClickOutside';
 
 export interface HeaderMenuState {
   columnId: string;
@@ -27,21 +28,7 @@ interface Item {
 export function HeaderContextMenu<TData>({ column, position, onClose, themeStyle }: HeaderContextMenuProps<TData>) {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!position) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
-    };
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [position, onClose]);
+  useClickOutside(menuRef, onClose, { enabled: !!position, escape: true });
 
   // Keep menu inside the viewport
   useEffect(() => {

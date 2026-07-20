@@ -57,6 +57,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>, options?: Grid
     density: propDensity = 'normal',
     gridId,
     enableRowGroup: gridEnableRowGroup = true,
+    amountFieldPattern,
   } = props;
 
   const persisted = useMemo(
@@ -142,7 +143,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>, options?: Grid
           id &&
           (merged.filter === 'number' ||
             isNumericDataType(merged.dataType) ||
-            isAmountField(merged.field, merged.headerName))
+            isAmountField(merged.field, merged.headerName, amountFieldPattern))
         ) {
           align[id] = 'right';
         }
@@ -151,7 +152,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>, options?: Grid
     };
     applyDefaults(columnDefs);
     return align;
-  }, [columnDefs, defaultColDef]);
+  }, [columnDefs, defaultColDef, amountFieldPattern]);
 
   const [userAlignment, setUserAlignment] = useState<Record<string, 'left' | 'center' | 'right'>>(
     () => persisted?.columnAlignment || {}
@@ -168,7 +169,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>, options?: Grid
   // ─── Map columns ───
   const showSelectColumn = rowSelection !== false && !options?.hideSelectColumn;
   const tanstackColumns = useMemo(() => {
-    const cols = columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup));
+    const cols = columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup, amountFieldPattern));
     if (showSelectColumn) {
       const selectCol: TanStackColumnDef<TData, any> = {
         id: SELECT_COLUMN_ID,
@@ -186,7 +187,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>, options?: Grid
       cols.unshift(selectCol);
     }
     return cols;
-  }, [columnDefs, defaultColDef, gridEnableRowGroup, showSelectColumn]);
+  }, [columnDefs, defaultColDef, gridEnableRowGroup, showSelectColumn, amountFieldPattern]);
 
   // Dev aid: generated column IDs orphan persisted settings across remounts
   useEffect(() => {

@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Table } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 import { LOOKS, ACCENTS, LOOK_PRESETS } from '../styles/themes';
+import { useClickOutside } from '../core/useClickOutside';
 import type { ToolbarConfig, GridDensity, ExportToolbarConfig, GridAppearance, GridView } from '../types';
 
 interface GridToolbarProps<TData> {
@@ -29,15 +30,10 @@ interface GridToolbarProps<TData> {
   onToggleFloatingFilters?: () => void;
 }
 
-function useClickOutside(onOutside: () => void) {
+/** Thin wrapper keeping the local "hook returns its own ref" call style */
+function useClickOutsideRef(onOutside: () => void) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onOutside();
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onOutside]);
+  useClickOutside(ref, onOutside);
   return ref;
 }
 
@@ -98,9 +94,9 @@ export function GridToolbar<TData>({
   const [refreshing, setRefreshing] = useState(false);
   const [showDensityMenu, setShowDensityMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const exportRef = useClickOutside(() => setShowExportMenu(false));
-  const densityRef = useClickOutside(() => setShowDensityMenu(false));
-  const themeRef = useClickOutside(() => setShowThemeMenu(false));
+  const exportRef = useClickOutsideRef(() => setShowExportMenu(false));
+  const densityRef = useClickOutsideRef(() => setShowDensityMenu(false));
+  const themeRef = useClickOutsideRef(() => setShowThemeMenu(false));
 
   const exportConfig: ExportToolbarConfig =
     typeof config.export === 'object' ? config.export : {};

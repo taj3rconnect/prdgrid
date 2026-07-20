@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
+import { useClickOutside } from '../core/useClickOutside';
 
 export interface TypeaheadOption {
   value: string;
@@ -45,15 +46,10 @@ export function TypeaheadSelect({
     setQuery('');
     setHighlight(Math.max(0, options.findIndex((o) => o.value === value)));
     const t = setTimeout(() => searchRef.current?.focus(), 0);
-    const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setIsOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('mousedown', onDown);
-    };
+    return () => clearTimeout(t);
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useClickOutside(rootRef, useCallback(() => setIsOpen(false), []), { enabled: isOpen });
 
   useEffect(() => setHighlight(0), [query]);
 

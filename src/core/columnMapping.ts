@@ -1,5 +1,5 @@
 import type { ColumnDef as TanStackColumnDef } from '@tanstack/react-table';
-import type { ColumnDef, ColumnDataType, FilterType } from '../types';
+import type { ColumnDef } from '../types';
 
 // ─── Value access ────────────────────────────────────────────────────
 
@@ -11,6 +11,11 @@ let columnCounter = 0;
 
 // ─── Numeric / amount heuristics ─────────────────────────────────────
 
+/**
+ * Default heuristic for "this column holds money/amounts" (auto right-align +
+ * numeric formatting). Consumers with different domain vocabularies override it
+ * per grid via the `amountFieldPattern` prop instead of editing this regex.
+ */
 export const AMOUNT_FIELD_PATTERN = /\b(amount|price|cost|total|salary|revenue|balance|fee|budget|income|profit|margin|tax|discount|spend|expense|pnl|winnings|billRate|bankBalance|gp|gross|net)\b/i;
 
 export function formatWithDecimals(value: any, decimals: number): string {
@@ -18,47 +23,22 @@ export function formatWithDecimals(value: any, decimals: number): string {
   return Number(value).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-export function isAmountField(field?: string, headerName?: string): boolean {
-  if (field && AMOUNT_FIELD_PATTERN.test(field)) return true;
-  if (headerName && AMOUNT_FIELD_PATTERN.test(headerName)) return true;
+export function isAmountField(field?: string, headerName?: string, pattern: RegExp = AMOUNT_FIELD_PATTERN): boolean {
+  if (field && pattern.test(field)) return true;
+  if (headerName && pattern.test(headerName)) return true;
   return false;
 }
 
-const NUMERIC_DATA_TYPES: ColumnDataType[] = ['number', 'currency', 'percent', 'progress', 'rating'];
-
-export function isNumericDataType(dataType?: ColumnDataType): boolean {
-  return dataType != null && NUMERIC_DATA_TYPES.includes(dataType);
-}
-
-/** Default filter type inferred from a column's dataType (explicit `filter` always wins) */
-export function defaultFilterForDataType(dataType?: ColumnDataType): FilterType | undefined {
-  switch (dataType) {
-    case 'number':
-    case 'currency':
-    case 'percent':
-    case 'progress':
-    case 'rating':
-      return 'number';
-    case 'date':
-      return 'date';
-    case 'select':
-    case 'multiSelect':
-    case 'user':
-      return 'set';
-    case 'text':
-    case 'link':
-      return 'text';
-    default:
-      return undefined;
-  }
-}
+export { isNumericDataType, defaultFilterForDataType } from './dataTypeRegistry';
+import { defaultFilterForDataType, isNumericDataType } from './dataTypeRegistry';
 
 // ─── Column Mapping ──────────────────────────────────────────────────
 
 export function mapColumnDef<TData>(
   col: ColumnDef<TData>,
   defaultColDef?: Partial<ColumnDef<TData>>,
-  gridEnableRowGroup?: boolean
+  gridEnableRowGroup?: boolean,
+  amountPattern: RegExp = AMOUNT_FIELD_PATTERN
 ): TanStackColumnDef<TData, any> {
   const merged = { ...defaultColDef, ...col };
   const id = col.colId || col.field || `col_${++columnCounter}`;
@@ -102,7 +82,7 @@ export function mapColumnDef<TData>(
         !merged.valueFormatter &&
         (effectiveFilter === 'number' ||
           isNumericDataType(merged.dataType) ||
-          isAmountField(merged.field, merged.headerName)),
+          isAmountField(merged.field, merged.headerName, amountPattern)),
       valueParser: merged.valueParser,
       valueSetter: merged.valueSetter,
       cellValidator: merged.cellValidator,
@@ -131,7 +111,7 @@ export function mapColumnDef<TData>(
           rowIndex: -1,
         });
       }
-      if (!merged.valueFormatter && (isAmountField(merged.field, merged.headerName) || merged.filter === 'number')) {
+      if (!merged.valueFormatter && (isAmountField(merged.field, merged.headerName, amountPattern) || merged.filter === 'number')) {
         return formatWithDecimals(val, 0);
       }
       return val;
@@ -140,7 +120,7 @@ export function mapColumnDef<TData>(
 
   if (col.children && col.children.length > 0) {
     (tanstackCol as any).columns = col.children.map((child) =>
-      mapColumnDef(child, defaultColDef, gridEnableRowGroup)
+      mapColumnDef(child, defaultColDef, gridEnableRowGroup, amountPattern)
     );
   }
 
