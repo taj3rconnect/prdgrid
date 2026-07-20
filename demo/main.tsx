@@ -983,6 +983,198 @@ function OverviewDemo({ onNavigate }: { onNavigate: (id: string) => void }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// SYSINFO — live stack report (avatar menu → System Info)
+// ═══════════════════════════════════════════════════════════════════════
+
+interface SysinfoRow {
+  package: string;
+  area: string;
+  type: string;
+  inUse: string;
+  latest: string;
+  status: 'up-to-date' | 'patch' | 'minor' | 'major' | 'unknown';
+}
+
+const SYS_STATUS_STYLE: Record<string, string> = {
+  'up-to-date': 'bg-green-100 text-green-700 border-green-200',
+  patch: 'bg-slate-100 text-slate-600 border-slate-200',
+  minor: 'bg-amber-100 text-amber-700 border-amber-200',
+  major: 'bg-red-100 text-red-700 border-red-200',
+  unknown: 'bg-gray-100 text-gray-500 border-gray-200',
+};
+
+function SysStatusBadge({ value }: CellRendererParams<SysinfoRow>) {
+  return (
+    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${SYS_STATUS_STYLE[value] || SYS_STATUS_STYLE.unknown}`}>
+      {value}
+    </span>
+  );
+}
+
+function SysinfoView() {
+  const [rows, setRows] = useState<SysinfoRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/v1/sysinfo')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => {
+        if (!cancelled) setRows(Array.isArray(j.rows) ? j.rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const counts = {
+    total: rows.length,
+    ok: rows.filter((r) => r.status === 'up-to-date').length,
+    patch: rows.filter((r) => r.status === 'patch').length,
+    minor: rows.filter((r) => r.status === 'minor').length,
+    major: rows.filter((r) => r.status === 'major').length,
+  };
+
+  const cols: ColumnDef<SysinfoRow>[] = [
+    { field: 'package', headerName: 'Package', width: 240, sortable: true, filter: 'text',
+      cellStyle: () => ({ fontFamily: 'var(--mono)', fontSize: '12px', fontWeight: 600 }) },
+    { field: 'area', headerName: 'Area', width: 110, sortable: true, filter: 'set' },
+    { field: 'type', headerName: 'Type', width: 150, sortable: true, filter: 'set' },
+    { field: 'inUse', headerName: 'In use', width: 120, sortable: true,
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right' }) },
+    { field: 'latest', headerName: 'Latest', width: 120, sortable: true,
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right' }) },
+    { field: 'status', headerName: 'Status', width: 130, sortable: true, filter: 'set',
+      cellRenderer: SysStatusBadge },
+  ];
+
+  const tiles: [string, number][] = [
+    ['Packages', counts.total],
+    ['Up to date', counts.ok],
+    ['Patch behind', counts.patch],
+    ['Minor behind', counts.minor],
+    ['Major behind', counts.major],
+  ];
+
+  return (
+    <Section title="System Info"
+      subtitle="Live tech stack of this deployment — version in use vs latest on the npm registry. Read-only: this is a public demo, so the standard Upgrade/Restart admin actions are intentionally omitted."
+      tags={['Live Registry Lookup', 'Drift KPIs', 'Read-only']}>
+      {error && (
+        <div className="mb-3 rounded-lg border border-[#eaecf0] bg-white px-4 py-3 text-[13px] text-[#475467]">
+          The sysinfo API is not reachable from this hosting mode (static preview). Deployed
+          instances serve it at <code className="rounded bg-gray-100 px-1" style={{ fontFamily: 'var(--mono)' }}>/api/v1/sysinfo</code>.
+        </div>
+      )}
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {tiles.map(([label, n]) => (
+          <div key={label} className="rounded-lg border border-[#eaecf0] bg-white px-4 py-3">
+            <div className="text-right text-[22px] font-bold tabular-nums text-[#101828]" style={{ fontFamily: 'var(--mono)' }}>{n}</div>
+            <div className="mt-0.5 text-right text-[11px] font-medium text-[#667085]">{label}</div>
+          </div>
+        ))}
+      </div>
+      <DataGrid<SysinfoRow>
+        gridId="sysinfo" rowData={rows} columnDefs={cols}
+        defaultColDef={{ sortable: true, resizable: true }}
+        getRowId={(d) => `${d.area}:${d.package}`}
+        loading={loading} height={520} statusBar
+        toolbar={{ search: true, export: { csv: true } }}
+        noRowsMessage="Zero rows — sysinfo data unavailable in this hosting mode"
+      />
+    </Section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// AVATAR MENU — LAYOUT (Responsive toggle) + System Info
+// ═══════════════════════════════════════════════════════════════════════
+
+function AvatarMenu({ responsive, onResponsiveChange, onSysinfo }: {
+  responsive: boolean;
+  onResponsiveChange: (v: boolean) => void;
+  onSysinfo: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        aria-label="User menu"
+        aria-expanded={open}
+        title="User menu"
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-[12px] font-semibold text-white transition-colors hover:bg-white/25"
+        style={{ border: 'none', cursor: 'pointer' }}
+        onClick={() => setOpen((o) => !o)}
+      >
+        TH
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-lg border border-[#eaecf0] bg-white py-1 shadow-lg">
+          <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-[#98a2b3]">Layout</div>
+          <button
+            className="flex w-full items-center justify-between bg-transparent px-3 py-2 text-left text-[13px] text-[#344054] hover:bg-[#f9fafb]"
+            style={{ border: 'none', font: 'inherit', cursor: 'pointer' }}
+            role="switch"
+            aria-checked={responsive}
+            onClick={() => onResponsiveChange(!responsive)}
+          >
+            <span>Responsive (full width)</span>
+            <span
+              className="relative inline-block h-4 w-8 rounded-full transition-colors"
+              style={{ backgroundColor: responsive ? '#0e4491' : '#d0d5dd' }}
+            >
+              <span
+                className="absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all"
+                style={{ left: responsive ? 18 : 2 }}
+              />
+            </span>
+          </button>
+          <div className="my-1 border-t border-[#f2f4f7]" />
+          <button
+            className="flex w-full items-center gap-2 bg-transparent px-3 py-2 text-left text-[13px] text-[#344054] hover:bg-[#f9fafb]"
+            style={{ border: 'none', font: 'inherit', cursor: 'pointer' }}
+            onClick={() => {
+              setOpen(false);
+              onSysinfo();
+            }}
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+            </svg>
+            System Info
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // APP — TABBED NAVIGATION
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -1001,18 +1193,35 @@ const navItems = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() =>
+    window.location.pathname === '/sysinfo' ? 'sysinfo' : 'overview'
+  );
+  const [responsive, setResponsive] = useState(() => localStorage.getItem('prd-demo-responsive') === '1');
+  const setResponsivePersist = (v: boolean) => {
+    setResponsive(v);
+    localStorage.setItem('prd-demo-responsive', v ? '1' : '0');
+  };
+  const openTab = (id: string) => {
+    setActiveTab(id);
+    window.history.pushState(null, '', id === 'sysinfo' ? '/sysinfo' : '/');
+  };
+  useEffect(() => {
+    const onPop = () => setActiveTab(window.location.pathname === '/sysinfo' ? 'sysinfo' : 'overview');
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const container = responsive ? 'mx-auto w-full px-6' : 'mx-auto max-w-[1152px] px-6';
   const ActiveDemo = navItems.find(n => n.id === activeTab)?.component;
 
   return (
     <div className="min-h-screen bg-[#f9fafb]">
       <nav className="sticky top-0 z-50" style={{ backgroundColor: '#0e4491' }}>
-        <div className="mx-auto max-w-[1152px] px-6 flex items-center h-14 gap-4">
+        <div className={`${container} flex items-center h-14 gap-4`}>
           <button
             className="flex items-center gap-2.5 mr-2 bg-transparent"
             style={{ border: 'none', font: 'inherit', cursor: 'pointer', padding: 0 }}
             title="Back to overview"
-            onClick={() => setActiveTab('overview')}
+            onClick={() => openTab('overview')}
           >
             <div className="h-7 w-7 rounded-md bg-white flex items-center justify-center font-bold text-[11px]" style={{ color: '#0e4491' }}>pg</div>
             <span className="font-semibold text-white text-[15px] tracking-[-0.01em]">prdgrid</span>
@@ -1022,7 +1231,7 @@ function App() {
           <div className="flex items-center gap-0.5 overflow-x-auto">
             {navItems.map(n => (
               <button key={n.id}
-                onClick={() => setActiveTab(n.id)}
+                onClick={() => openTab(n.id)}
                 style={{ border: 'none', font: 'inherit', cursor: 'pointer' }}
                 className={`whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors ${
                   activeTab === n.id
@@ -1034,6 +1243,7 @@ function App() {
             ))}
           </div>
           <div className="flex-1" />
+          <AvatarMenu responsive={responsive} onResponsiveChange={setResponsivePersist} onSysinfo={() => openTab('sysinfo')} />
           <a href="https://github.com/taj3rconnect/prdgrid" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-medium text-white/65 hover:bg-white/10 hover:text-white transition-colors">
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
@@ -1044,7 +1254,7 @@ function App() {
 
       {activeTab === 'overview' && (
       <header className="border-b border-[#eaecf0] bg-white">
-        <div className="mx-auto max-w-[1152px] px-6 py-10">
+        <div className={`${container} py-10`}>
           <h1 className="text-[32px] font-bold leading-tight tracking-[-0.02em] text-[#101828]">
             The enterprise React data grid.
             <br />
@@ -1056,7 +1266,7 @@ function App() {
           </p>
           <div className="mt-5 flex items-center gap-3">
             <button
-              onClick={() => setActiveTab('airtable')}
+              onClick={() => openTab('airtable')}
               className="rounded-md px-4 py-2 text-[13.5px] font-semibold text-white transition-colors"
               style={{ backgroundColor: '#0e4491', border: 'none', font: 'inherit', fontWeight: 600, cursor: 'pointer' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#00388f')}
@@ -1081,8 +1291,8 @@ function App() {
       </header>
       )}
 
-      <div className="mx-auto max-w-[1152px] px-6 py-10">
-        {ActiveDemo ? <ActiveDemo /> : <OverviewDemo onNavigate={setActiveTab} />}
+      <div className={`${container} py-10`}>
+        {activeTab === 'sysinfo' ? <SysinfoView /> : ActiveDemo ? <ActiveDemo /> : <OverviewDemo onNavigate={openTab} />}
         <footer className="mt-16 border-t border-[#eaecf0] pt-6 pb-10 text-center">
           <p className="text-sm text-[#667085]">prdgrid v0.1.0 — Built by <a href="https://github.com/taj3rconnect" className="hover:underline" style={{ color: '#0e4491' }}>Taj Haslani</a></p>
           <p className="text-xs text-[#98a2b3] mt-1">TanStack Table v8 + Tailwind CSS — MIT Licensed</p>

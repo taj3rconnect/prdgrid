@@ -425,3 +425,22 @@
     box-shadow: none !important;
   }
 }
+
+/* ── Accessibility: visible keyboard focus + reduced motion ── */
+.jt-grid button:focus-visible,
+.jt-grid [role='button']:focus-visible,
+.jt-grid input:focus-visible,
+.jt-grid select:focus-visible {
+  outline: 2px solid var(--jt-grid-accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-grid *,
+  .jt-grid *::before,
+  .jt-grid *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

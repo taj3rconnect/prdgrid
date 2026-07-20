@@ -128,7 +128,7 @@ export function HeaderCell<TData>({
               e.stopPropagation();
               column.toggleGrouping();
             }}
-            title={isGrouped ? 'Ungroup' : 'Group by this column'}
+            title={isGrouped ? 'Ungroup' : 'Group by this column'} aria-label={isGrouped ? 'Ungroup' : 'Group by this column'}
           >
             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
               <path d="M2 4h12M4.5 8h7M7 12h2" />

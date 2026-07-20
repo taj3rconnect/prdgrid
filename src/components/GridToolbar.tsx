@@ -380,7 +380,7 @@ export function GridToolbar<TData>({
                       backgroundColor: a.color,
                       boxShadow: appearance!.accent === a.value ? `0 0 0 2px var(--jt-grid-menu-bg), 0 0 0 3.5px ${a.color}` : undefined,
                     }}
-                    title={a.label}
+                    title={a.label} aria-label={a.label}
                     onClick={() => onAppearanceChange!({ ...appearance!, accent: a.value })}
                   >
                     {appearance!.accent === a.value && (

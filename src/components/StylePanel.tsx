@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GridStyleSettings } from '../types';
+import { TypeaheadSelect } from './TypeaheadSelect';
 
 interface StylePanelProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ function ColorInput({ value, onChange }: { value?: string; onChange: (v: string 
         onChange={(e) => onChange(e.target.value || undefined)}
       />
       {value && (
-        <button className="jt-btn !h-6 !px-1.5 text-xs" onClick={() => onChange(undefined)} title="Reset">
+        <button className="jt-btn !h-6 !px-1.5 text-xs" onClick={() => onChange(undefined)} title="Reset" aria-label="Reset style">
           ✕
         </button>
       )}
@@ -103,19 +104,16 @@ export function StylePanel({ isOpen, onClose, styles, onStylesChange, showSelect
             <SectionTitle>Header Row</SectionTitle>
             <div className="space-y-2.5">
               <FieldRow label="Font family">
-                <select className="jt-input h-7 w-full px-1.5 text-xs" value={styles.headerFontFamily || ''} onChange={(e) => set('headerFontFamily', e.target.value)}>
-                  {FONT_FAMILIES.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
+                <TypeaheadSelect className="h-7 w-full px-1.5 text-xs" ariaLabel="Header font family"
+                  value={styles.headerFontFamily || ''}
+                  options={FONT_FAMILIES.map((f) => ({ value: f.value, label: f.label }))}
+                  onChange={(v) => set('headerFontFamily', v)} />
               </FieldRow>
               <FieldRow label="Font size">
-                <select className="jt-input h-7 w-full px-1.5 text-xs" value={styles.headerFontSize || ''} onChange={(e) => set('headerFontSize', e.target.value)}>
-                  <option value="">Default</option>
-                  {FONT_SIZES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                <TypeaheadSelect className="h-7 w-full px-1.5 text-xs" ariaLabel="Header font size"
+                  value={styles.headerFontSize || ''}
+                  options={[{ value: '', label: 'Default' }, ...FONT_SIZES.map((s) => ({ value: s, label: s }))]}
+                  onChange={(v) => set('headerFontSize', v)} />
               </FieldRow>
               <FieldRow label="Font style">
                 <div className="flex gap-1">
@@ -148,19 +146,16 @@ export function StylePanel({ isOpen, onClose, styles, onStylesChange, showSelect
             <SectionTitle>Data Rows</SectionTitle>
             <div className="space-y-2.5">
               <FieldRow label="Font family">
-                <select className="jt-input h-7 w-full px-1.5 text-xs" value={styles.rowFontFamily || ''} onChange={(e) => set('rowFontFamily', e.target.value)}>
-                  {FONT_FAMILIES.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
+                <TypeaheadSelect className="h-7 w-full px-1.5 text-xs" ariaLabel="Row font family"
+                  value={styles.rowFontFamily || ''}
+                  options={FONT_FAMILIES.map((f) => ({ value: f.value, label: f.label }))}
+                  onChange={(v) => set('rowFontFamily', v)} />
               </FieldRow>
               <FieldRow label="Font size">
-                <select className="jt-input h-7 w-full px-1.5 text-xs" value={styles.rowFontSize || ''} onChange={(e) => set('rowFontSize', e.target.value)}>
-                  <option value="">Default</option>
-                  {FONT_SIZES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                <TypeaheadSelect className="h-7 w-full px-1.5 text-xs" ariaLabel="Row font size"
+                  value={styles.rowFontSize || ''}
+                  options={[{ value: '', label: 'Default' }, ...FONT_SIZES.map((s) => ({ value: s, label: s }))]}
+                  onChange={(v) => set('rowFontSize', v)} />
               </FieldRow>
               <FieldRow label="Alt-row color">
                 <ColorInput value={styles.altRowBgColor} onChange={(v) => set('altRowBgColor', v)} />

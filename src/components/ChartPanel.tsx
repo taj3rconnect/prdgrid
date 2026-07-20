@@ -6,6 +6,7 @@ import { ChartSvg, seriesColor } from '../charts/ChartSvg';
 import { getColumnHeader } from '../core/gridUtils';
 import { isNumericDataType } from '../core/useGridEngine';
 import type { ChartAggregation, ChartConfig, ChartType, ColumnMeta } from '../types';
+import { TypeaheadSelect } from './TypeaheadSelect';
 
 const MAX_CHARTS = 8;
 const CHART_TYPES: { value: ChartType; label: string }[] = [
@@ -121,7 +122,7 @@ export function ChartPanel<TData>({ table, charts, onChartsChange }: ChartPanelP
                       e.stopPropagation();
                       setMenuFor(menuFor === cfg.id ? null : cfg.id);
                     }}
-                    title="Chart options"
+                    title="Chart options" aria-label="Chart options"
                   >
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
                       <circle cx="8" cy="3" r="1.4" /><circle cx="8" cy="8" r="1.4" /><circle cx="8" cy="13" r="1.4" />
@@ -189,26 +190,26 @@ export function ChartPanel<TData>({ table, charts, onChartsChange }: ChartPanelP
             </div>
 
             <label className="mb-1 block text-grid-sm font-medium text-grid-text-secondary">Category (X axis)</label>
-            <select
-              className="jt-input mb-3 w-full px-2 py-1.5"
-              value={editor.config.categoryColId}
-              onChange={(e) => setEditor({ ...editor, config: { ...editor.config, categoryColId: e.target.value } })}
-            >
-              {leafColumns.map((c) => (
-                <option key={c.id} value={c.id}>{seriesLabels[c.id]}</option>
-              ))}
-            </select>
+            <div className="mb-3">
+              <TypeaheadSelect
+                className="w-full px-2 py-1.5"
+                ariaLabel="Category (X axis)"
+                value={editor.config.categoryColId}
+                options={leafColumns.map((c) => ({ value: c.id, label: String(seriesLabels[c.id] ?? c.id) }))}
+                onChange={(v) => setEditor({ ...editor, config: { ...editor.config, categoryColId: v } })}
+              />
+            </div>
 
             <label className="mb-1 block text-grid-sm font-medium text-grid-text-secondary">Aggregation</label>
-            <select
-              className="jt-input mb-3 w-full px-2 py-1.5 capitalize"
-              value={editor.config.aggregation}
-              onChange={(e) => setEditor({ ...editor, config: { ...editor.config, aggregation: e.target.value as ChartAggregation } })}
-            >
-              {AGGREGATIONS.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
+            <div className="mb-3">
+              <TypeaheadSelect
+                className="w-full px-2 py-1.5 capitalize"
+                ariaLabel="Aggregation"
+                value={editor.config.aggregation}
+                options={AGGREGATIONS.map((a) => ({ value: a, label: a }))}
+                onChange={(v) => setEditor({ ...editor, config: { ...editor.config, aggregation: v as ChartAggregation } })}
+              />
+            </div>
 
             {editor.config.aggregation !== 'count' && (
               <>

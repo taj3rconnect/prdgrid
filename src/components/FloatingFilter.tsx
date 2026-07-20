@@ -82,13 +82,16 @@ function FloatingFilterCell<TData>({ header }: { header: Header<TData, unknown> 
 
 function SetFilterDropdown({ column }: { column: any }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const filterValue = (column.getFilterValue() as string[] | undefined) ?? [];
 
   // Get unique values from column
   const facetedValues = column.getFacetedUniqueValues?.() as Map<any, number> | undefined;
-  const uniqueValues = facetedValues
+  const allValues = facetedValues
     ? Array.from(facetedValues.keys()).sort()
     : [];
+  const q = search.trim().toLowerCase();
+  const uniqueValues = q ? allValues.filter((v) => String(v).toLowerCase().includes(q)) : allValues;
 
   const toggleValue = (val: string) => {
     const current = [...filterValue];
@@ -116,6 +119,23 @@ function SetFilterDropdown({ column }: { column: any }) {
       </button>
       {isOpen && (
         <div className="jt-menu absolute left-0 top-full z-50 mt-1 max-h-48 w-48 overflow-y-auto">
+          <div className="px-1.5 pt-1.5">
+            <input
+              type="text"
+              autoFocus
+              className="jt-input mb-1 w-full px-1.5 py-0.5 text-xs"
+              placeholder="Search values..."
+              aria-label="Search filter values"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }
+              }}
+            />
+          </div>
           <div className="px-2 py-1" style={{ borderBottom: '1px solid var(--jt-grid-border)' }}>
             <button
               className="text-xs text-grid-accent hover:underline"

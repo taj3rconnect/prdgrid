@@ -172,7 +172,7 @@ export const GridCell = React.memo(function GridCell<TData>({
               <button
                 className="jt-expand-btn flex h-[18px] w-[18px] items-center justify-center rounded hover:bg-grid-accent-light"
                 style={{ color: 'var(--jt-grid-accent)' }}
-                title="Expand record"
+                title="Expand record" aria-label="Expand record"
                 onClick={(e) => {
                   e.stopPropagation();
                   onExpandRecord(row.id);

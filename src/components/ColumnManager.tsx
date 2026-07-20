@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { reorderColumn, getColumnHeader } from '../core/gridUtils';
 import { FieldTypeIcon } from './renderers';
 import type { ColumnMeta } from '../types';
+import { TypeaheadSelect } from './TypeaheadSelect';
 
 type Alignment = 'left' | 'center' | 'right';
 
@@ -168,30 +169,28 @@ export function ColumnManager<TData>({
 
                 {/* Decimal places (numeric columns only) */}
                 {meta?.autoNumeric && (
-                  <select
-                    className="jt-input h-5 w-10 text-[10px]"
-                    value={columnDecimals[column.id] ?? 0}
-                    onChange={(e) => onColumnDecimalsChange(column.id, Number(e.target.value))}
+                  <TypeaheadSelect
+                    className="h-5 w-11 text-[10px]"
                     title="Decimal places"
-                  >
-                    {decimalOptions.map((d) => (
-                      <option key={d} value={d}>.{d}</option>
-                    ))}
-                  </select>
+                    ariaLabel="Decimal places"
+                    value={String(columnDecimals[column.id] ?? 0)}
+                    options={decimalOptions.map((d) => ({ value: String(d), label: '.' + String(d) }))}
+                    onChange={(v) => onColumnDecimalsChange(column.id, Number(v))}
+                  />
                 )}
 
                 {/* Pin controls */}
                 <button
                   className={clsx('rounded px-1 text-xs', column.getIsPinned() === 'left' ? 'bg-grid-accent-light text-grid-accent' : 'text-grid-header-icon hover:text-grid-text')}
                   onClick={() => column.pin(column.getIsPinned() === 'left' ? false : 'left')}
-                  title="Pin left"
+                  title="Pin left" aria-label="Pin left"
                 >
                   ◀
                 </button>
                 <button
                   className={clsx('rounded px-1 text-xs', column.getIsPinned() === 'right' ? 'bg-grid-accent-light text-grid-accent' : 'text-grid-header-icon hover:text-grid-text')}
                   onClick={() => column.pin(column.getIsPinned() === 'right' ? false : 'right')}
-                  title="Pin right"
+                  title="Pin right" aria-label="Pin right"
                 >
                   ▶
                 </button>

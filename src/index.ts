@@ -82,6 +82,8 @@ export { LOOK_PRESETS, LOOKS, ACCENTS, resolveAppearance } from './styles/themes
 // ─── Charts & renderers (for programmatic use) ───
 export { buildChartData, aggregate } from './charts/aggregate';
 export { Sparkline, Chip, FieldTypeIcon } from './components/renderers';
+export { TypeaheadSelect } from './components/TypeaheadSelect';
+export type { TypeaheadOption } from './components/TypeaheadSelect';
 
 // ─── Export utilities (for programmatic use) ───
 export { exportToCsv } from './export/csvExport';

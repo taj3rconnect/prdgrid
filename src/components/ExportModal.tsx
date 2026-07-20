@@ -3,6 +3,7 @@ import { Table } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 import { generateCsvString } from '../export/csvExport';
 import { generatePdfBase64, generateHtmlTable } from '../export/pdfExport';
+import { TypeaheadSelect } from './TypeaheadSelect';
 
 type Tab = 'email' | 'schedule';
 type ExportFormat = 'html' | 'pdf' | 'csv';
@@ -174,30 +175,24 @@ export function ExportModal<TData>({
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className={labelCls}>Frequency</label>
-                  <select className={inputCls} value={freq} onChange={(e) => setFreq(e.target.value as Frequency)}>
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </select>
+                  <TypeaheadSelect className="w-full" ariaLabel="Frequency" value={freq}
+                    options={[{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }]}
+                    onChange={(v) => setFreq(v as Frequency)} />
                 </div>
                 {freq === 'weekly' && (
                   <div className="flex-1">
                     <label className={labelCls}>Day</label>
-                    <select className={inputCls} value={dow} onChange={(e) => setDow(Number(e.target.value))}>
-                      {DAY_NAMES.map((d, i) => (
-                        <option key={d} value={i}>{d}</option>
-                      ))}
-                    </select>
+                    <TypeaheadSelect className="w-full" ariaLabel="Day of week" value={String(dow)}
+                      options={DAY_NAMES.map((d, i) => ({ value: String(i), label: d }))}
+                      onChange={(v) => setDow(Number(v))} />
                   </div>
                 )}
                 {freq === 'monthly' && (
                   <div className="flex-1">
                     <label className={labelCls}>Day of month</label>
-                    <select className={inputCls} value={dom} onChange={(e) => setDom(Number(e.target.value))}>
-                      {Array.from({ length: 28 }, (_, i) => (
-                        <option key={i + 1} value={i + 1}>{i + 1}</option>
-                      ))}
-                    </select>
+                    <TypeaheadSelect className="w-full" ariaLabel="Day of month" value={String(dom)}
+                      options={Array.from({ length: 28 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
+                      onChange={(v) => setDom(Number(v))} />
                   </div>
                 )}
                 <div className="flex-1">

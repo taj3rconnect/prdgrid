@@ -63,7 +63,7 @@ export function RecordPanel<TData>({ table, rowId, onClose, onNavigate }: Record
               disabled={rowIndex <= 0}
               style={rowIndex <= 0 ? { opacity: 0.4, cursor: 'default' } : undefined}
               onClick={() => rowIndex > 0 && onNavigate(leafRows[rowIndex - 1]!.id)}
-              title="Previous record (↑)"
+              title="Previous record (↑)" aria-label="Previous record"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10l4-4 4 4" /></svg>
             </button>
@@ -72,11 +72,11 @@ export function RecordPanel<TData>({ table, rowId, onClose, onNavigate }: Record
               disabled={rowIndex >= leafRows.length - 1}
               style={rowIndex >= leafRows.length - 1 ? { opacity: 0.4, cursor: 'default' } : undefined}
               onClick={() => rowIndex < leafRows.length - 1 && onNavigate(leafRows[rowIndex + 1]!.id)}
-              title="Next record (↓)"
+              title="Next record (↓)" aria-label="Next record"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
             </button>
-            <button className="jt-btn !px-1.5" onClick={onClose} title="Close (Esc)">
+            <button className="jt-btn !px-1.5" onClick={onClose} title="Close (Esc)" aria-label="Close record panel">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8" /></svg>
             </button>
           </div>

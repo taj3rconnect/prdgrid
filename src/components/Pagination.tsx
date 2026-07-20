@@ -1,5 +1,6 @@
 import { Table } from '@tanstack/react-table';
 import { clsx } from 'clsx';
+import { TypeaheadSelect } from './TypeaheadSelect';
 
 interface PaginationProps<TData> {
   table: Table<TData>;
@@ -13,7 +14,7 @@ function NavButton({ disabled, onClick, title, children }: { disabled: boolean; 
       style={disabled ? { color: 'var(--jt-grid-border-strong)', cursor: 'default' } : undefined}
       onClick={onClick}
       disabled={disabled}
-      title={title}
+      title={title} aria-label={title}
     >
       {children}
     </button>
@@ -37,17 +38,13 @@ export function Pagination<TData>({ table, pageSizeOptions }: PaginationProps<TD
       {/* Page size selector */}
       <div className="flex items-center gap-2 text-grid-sm text-grid-text-secondary">
         <span>Rows per page:</span>
-        <select
-          className="jt-input h-6 px-1.5 text-grid-sm"
-          value={pageSize}
-          onChange={(e) => table.setPageSize(Number(e.target.value))}
-        >
-          {pageSizeOptions.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
+        <TypeaheadSelect
+          className="h-6 px-1.5 text-grid-sm"
+          ariaLabel="Rows per page"
+          value={String(pageSize)}
+          options={pageSizeOptions.map((size) => ({ value: String(size), label: String(size) }))}
+          onChange={(v) => table.setPageSize(Number(v))}
+        />
       </div>
 
       {/* Row range */}

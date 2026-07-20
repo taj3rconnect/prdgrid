@@ -19,6 +19,7 @@ COPY demo-server/package.json ./
 RUN npm install --omit=dev
 COPY demo-server/ ./
 COPY demo/sampleData.ts /app/demo/sampleData.ts
+COPY --from=build /app/package.json /app/package.json
 COPY --from=build /app/docs /app/docs
 EXPOSE 8058
 VOLUME /data

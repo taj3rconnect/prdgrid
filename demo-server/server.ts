@@ -1,5 +1,5 @@
 import express from 'express';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readTable, tableNames } from './db.js';
 import { seedAll } from './seed.js';
@@ -34,6 +34,94 @@ app.get('/api/v1/health', (_req, res) => {
     timestamp: new Date().toISOString(),
     db: { tables: tableNames() },
   });
+});
+
+// ── SYSINFO: live stack report (read-only — public demo, no upgrade/restart actions) ──
+interface SysinfoRow {
+  package: string;
+  area: 'web' | 'api' | 'runtime';
+  type: 'dependency' | 'devDependency' | 'runtime';
+  inUse: string;
+  latest: string;
+  status: 'up-to-date' | 'patch' | 'minor' | 'major' | 'unknown';
+}
+
+let sysinfoCache: { rows: SysinfoRow[]; at: number } | null = null;
+
+function drift(inUse: string, latest: string): SysinfoRow['status'] {
+  const a = inUse.replace(/^[^0-9]*/, '').split('.').map(Number);
+  const b = latest.split('.').map(Number);
+  if (a.some(isNaN) || b.some(isNaN) || a.length < 3 || b.length < 3) return 'unknown';
+  if (a[0] !== b[0]) return 'major';
+  if (a[1] !== b[1]) return 'minor';
+  if (a[2] !== b[2]) return 'patch';
+  return 'up-to-date';
+}
+
+async function latestVersion(name: string): Promise<string> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/latest`, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!r.ok) return 'unknown';
+    const j = (await r.json()) as { version?: string };
+    return j.version || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+app.get('/api/v1/sysinfo', async (_req, res) => {
+  if (sysinfoCache && Date.now() - sysinfoCache.at < 10 * 60_000) {
+    res.json({ rows: sysinfoCache.rows, cachedAt: new Date(sysinfoCache.at).toISOString() });
+    return;
+  }
+  try {
+    const load = (p: string) => {
+      const full = resolve(p);
+      return existsSync(full) ? JSON.parse(readFileSync(full, 'utf8')) : null;
+    };
+    const webPkg = load('../package.json');
+    const apiPkg = load('./package.json');
+    const entries: { name: string; area: SysinfoRow['area']; type: SysinfoRow['type']; inUse: string }[] = [];
+    for (const [pkg, area] of [[webPkg, 'web'], [apiPkg, 'api']] as const) {
+      if (!pkg) continue;
+      for (const [name, v] of Object.entries(pkg.dependencies || {})) {
+        entries.push({ name, area, type: 'dependency', inUse: String(v) });
+      }
+      if (area === 'web') {
+        for (const [name, v] of Object.entries(pkg.devDependencies || {})) {
+          entries.push({ name, area, type: 'devDependency', inUse: String(v) });
+        }
+      }
+    }
+    const rows: SysinfoRow[] = await Promise.all(
+      entries.map(async (e) => {
+        const latest = await latestVersion(e.name);
+        return {
+          package: e.name,
+          area: e.area,
+          type: e.type,
+          inUse: e.inUse.replace(/^[\^~]/, ''),
+          latest,
+          status: latest === 'unknown' ? 'unknown' : drift(e.inUse, latest),
+        };
+      })
+    );
+    rows.push({
+      package: 'node',
+      area: 'runtime',
+      type: 'runtime',
+      inUse: process.version.replace(/^v/, ''),
+      latest: 'unknown',
+      status: 'unknown',
+    });
+    sysinfoCache = { rows, at: Date.now() };
+    res.json({ rows, cachedAt: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ error: 'sysinfo collection failed' });
+  }
 });
 
 const ALLOWED = new Set(['employees', 'finance', 'candidates', 'products', 'games']);
