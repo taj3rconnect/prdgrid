@@ -144,7 +144,7 @@ function TickerCell({ data }: CellRendererParams<FinanceRow>) {
         style={{ width: 24, height: 24, backgroundColor: d.color }}>
         {d.ticker.slice(0, 2)}
       </div>
-      <span className="font-bold text-[13px]" style={{ fontFamily: 'monospace' }}>{d.ticker}</span>
+      <span className="font-bold text-[13px]" style={{ fontFamily: 'var(--mono)' }}>{d.ticker}</span>
       <span className="text-[11px] text-gray-400 truncate">{d.name}</span>
     </div>
   );
@@ -280,18 +280,36 @@ function Section({ title, subtitle, tags, children }: {
   title: string; subtitle: string; tags: string[]; children: React.ReactNode;
 }) {
   return (
-    <section className="mb-8">
+    <section className="mb-10">
       <div className="mb-4">
-        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-        <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
-        <div className="flex flex-wrap gap-1.5 mt-2">
+        <h2 className="text-[22px] font-bold tracking-[-0.01em] text-[#101828]">{title}</h2>
+        <p className="text-sm text-[#475467] mt-1">{subtitle}</p>
+        <div className="flex flex-wrap gap-1.5 mt-2.5">
           {tags.map(t => (
-            <span key={t} className="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-600/10">{t}</span>
+            <span key={t} className="rounded-md border border-[#eaecf0] bg-[#f9fafb] px-2 py-0.5 text-[11px] font-medium text-[#475467]">{t}</span>
           ))}
         </div>
       </div>
       {children}
     </section>
+  );
+}
+
+// Explains drag-to-group for demos that enable the group panel
+function GroupingHint({ examples }: { examples: string }) {
+  return (
+    <div className="mb-3 flex gap-3 rounded-lg border border-[#d4e3f8] bg-[#f4f8ff] px-4 py-3">
+      <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#0e4491]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+      </svg>
+      <div className="text-[13px] leading-relaxed text-[#344054]">
+        <span className="font-semibold text-[#101828]">Row grouping:</span>{' '}
+        drag a column header (try {examples}) into the band above the grid that reads
+        “Drag column headers here to group rows”. Rows collapse into expandable groups — click a
+        group row to open it — and numeric columns roll up (sum / avg) per group. Remove a group
+        by clicking the × on its chip, or “Clear all” to reset.
+      </div>
+    </div>
   );
 }
 
@@ -395,7 +413,7 @@ function HRDemo() {
       cellRenderer: TreeEmployeeCell,
     },
     { field: 'id', headerName: 'ID', width: 100,
-      cellStyle: () => ({ fontFamily: 'monospace', fontSize: '12px', color: '#9ca3af' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', fontSize: '12px', color: '#9ca3af' }) },
     { field: 'department', headerName: 'DEPARTMENT', width: 220, sortable: true, filter: 'set',
       cellRenderer: DeptChip },
     { field: 'employmentType', headerName: 'EMPLOYMENT TYPE', width: 160, sortable: true, filter: 'set' },
@@ -407,7 +425,7 @@ function HRDemo() {
         const sym = { USD: '$', EUR: '€', GBP: '£' }[(d as HREmployee)?.currency] || '$';
         return `${sym}${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
       },
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right' }) },
     { field: 'paymentMethod', headerName: 'PAYMENT METHOD', width: 160, sortable: true, filter: 'set' },
     { field: 'paymentStatus', headerName: 'STATUS', width: 120, sortable: true, filter: 'set',
       cellRenderer: PaymentStatusBadge },
@@ -461,7 +479,7 @@ function FinanceDemo() {
       cellRenderer: DeltaValueCell },
     { field: 'quantity', headerName: 'QUANTITY', width: 150, sortable: true,
       valueFormatter: ({ value }) => Number(value).toLocaleString(),
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right' }) },
   ];
 
   return (
@@ -499,7 +517,7 @@ function PerformanceDemo() {
     { field: 'bankBalance', headerName: 'BANK BALANCE', width: 150, sortable: true, filter: 'number', aggFunc: 'avg',
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
       cellStyle: ({ value }) => ({
-        fontFamily: 'monospace', textAlign: 'right',
+        fontFamily: 'var(--mono)', textAlign: 'right',
         color: Number(value) > 25000 ? '#2563eb' : undefined,
         fontWeight: Number(value) > 25000 ? 600 : undefined,
       }) },
@@ -507,31 +525,32 @@ function PerformanceDemo() {
       cellRenderer: StarRating },
     { field: 'totalWinnings', headerName: 'TOTAL WINNINGS', width: 170, sortable: true, filter: 'number', aggFunc: 'sum',
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontWeight: 600 }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right', fontWeight: 600 }) },
     // Monthly Breakdown
     { field: 'jan', headerName: 'JAN', width: 100, sortable: true,
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
     { field: 'feb', headerName: 'FEB', width: 100, sortable: true,
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
     { field: 'mar', headerName: 'MAR', width: 100, sortable: true,
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
     { field: 'apr', headerName: 'APR', width: 100, sortable: true,
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
     { field: 'may', headerName: 'MAY', width: 100, sortable: true,
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
     { field: 'jun', headerName: 'JUN', width: 100, sortable: true,
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right', fontSize: '12px', color: '#6b7280' }) },
   ];
 
   return (
-    <Section title="Performance" subtitle="1,000 rows, 14 columns — gaming tournament data with star ratings, country flags, and monthly breakdown"
-      tags={['1000 Rows', 'Star Ratings', 'Country Flags', 'Dollar Formatting', 'Aggregation', 'Grouping']}>
+    <Section title="Performance" subtitle="1,000 rows, 14 columns — gaming tournament data with star ratings, country flags, monthly breakdown, and drag-to-group rows"
+      tags={['1000 Rows', 'Star Ratings', 'Country Flags', 'Dollar Formatting', 'Aggregation', 'Row Grouping']}>
+      <GroupingHint examples="Language, Country, or Game" />
       <DataGrid<GameRow>
         gridId="perf-demo" rowData={data} columnDefs={cols}
         defaultColDef={{ sortable: true, resizable: true, minWidth: 60 }}
@@ -551,7 +570,7 @@ function StaffingDemo() {
   const data = useSeedData('candidates', () => generateCandidates(250));
 
   const cols: ColumnDef<Candidate>[] = [
-    { field: 'id', headerName: '#', width: 65, pinned: 'left', cellStyle: () => ({ fontFamily: 'monospace', fontSize: '11px', color: '#9ca3af' }) },
+    { field: 'id', headerName: '#', width: 65, pinned: 'left', cellStyle: () => ({ fontFamily: 'var(--mono)', fontSize: '11px', color: '#9ca3af' }) },
     { field: 'name', headerName: 'Candidate', width: 165, sortable: true, filter: 'text', floatingFilter: true, cellStyle: () => ({ fontWeight: 600 }) },
     { field: 'role', headerName: 'Role', width: 190, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true },
     { field: 'client', headerName: 'Client', width: 145, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true },
@@ -561,14 +580,14 @@ function StaffingDemo() {
     { field: 'recruiter', headerName: 'Recruiter', width: 130, sortable: true, filter: 'set', floatingFilter: true, enableRowGroup: true },
     { field: 'salary', headerName: 'Salary', width: 115, sortable: true, filter: 'number', aggFunc: 'avg',
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString()}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right' }) },
     { field: 'billRate', headerName: 'Bill Rate', width: 95, sortable: true, filter: 'number', aggFunc: 'avg',
       valueFormatter: ({ value }) => `$${value}/hr`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right' }) },
     { field: 'margin', headerName: 'Margin', width: 85, sortable: true,
       valueFormatter: ({ value }) => `${value}%`,
       cellStyle: ({ value }) => ({
-        fontFamily: 'monospace', textAlign: 'right', fontWeight: 600,
+        fontFamily: 'var(--mono)', textAlign: 'right', fontWeight: 600,
         color: Number(value) >= 35 ? '#059669' : Number(value) >= 25 ? '#d97706' : '#dc2626',
       }) },
     { field: 'yearsExp', headerName: 'Yrs Exp', width: 80, sortable: true, filter: 'number', cellStyle: () => ({ textAlign: 'center' }) },
@@ -578,8 +597,9 @@ function StaffingDemo() {
   ];
 
   return (
-    <Section title="Staffing Pipeline" subtitle="250 candidates — pipeline stages, bill rates, margin coloring, and recruiter tracking"
-      tags={['Pipeline Stages', 'Priority Heat', 'Margin Coloring', 'Bill Rate', 'Client Grouping', 'Pagination']}>
+    <Section title="Staffing Pipeline" subtitle="250 candidates — pipeline stages, bill rates, margin coloring, recruiter tracking, and drag-to-group rows"
+      tags={['Pipeline Stages', 'Priority Heat', 'Margin Coloring', 'Bill Rate', 'Row Grouping', 'Pagination']}>
+      <GroupingHint examples="Role, Client, Stage, or Recruiter" />
       <DataGrid<Candidate>
         gridId="staffing-demo" rowData={data} columnDefs={cols}
         defaultColDef={{ sortable: true, resizable: true, minWidth: 55 }}
@@ -609,7 +629,7 @@ function DarkDemo() {
       cellRenderer: LocationCell },
     { field: 'salary', headerName: 'Salary', width: 140, sortable: true,
       valueFormatter: ({ value }) => `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
-      cellStyle: () => ({ fontFamily: 'monospace', textAlign: 'right' }) },
+      cellStyle: () => ({ fontFamily: 'var(--mono)', textAlign: 'right' }) },
     { field: 'paymentStatus', headerName: 'Status', width: 120,
       cellRenderer: PaymentStatusBadge },
   ];
@@ -935,21 +955,22 @@ function OverviewDemo({ onNavigate }: { onNavigate: (id: string) => void }) {
       </div>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' }}>
         {CAPABILITIES.map((c) => (
-          <div key={c.title} className="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div key={c.title} className="flex flex-col rounded-lg border border-[#eaecf0] bg-white p-5 shadow-sm">
             <div className="mb-2 flex items-center gap-2.5">
               <span className="text-xl">{c.icon}</span>
-              <h3 className="text-[15px] font-bold text-gray-900">{c.title}</h3>
+              <h3 className="text-[15px] font-semibold text-[#101828]">{c.title}</h3>
             </div>
             <ul className="mb-4 flex-1 space-y-1.5">
               {c.points.map((p, i) => (
-                <li key={i} className="flex gap-2 text-[12.5px] leading-snug text-gray-600">
-                  <span className="mt-0.5 text-blue-500">•</span>
+                <li key={i} className="flex gap-2 text-[12.5px] leading-snug text-[#475467]">
+                  <span className="mt-0.5" style={{ color: '#3d7acd' }}>•</span>
                   <span>{p}</span>
                 </li>
               ))}
             </ul>
             <button
-              className="self-start rounded-md bg-blue-50 px-3 py-1.5 text-[12px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-600/20 hover:bg-blue-100"
+              className="self-start rounded-md border border-[#d4e3f8] bg-[#f4f8ff] px-3 py-1.5 text-[12px] font-semibold hover:bg-[#e5effd]"
+              style={{ color: '#0e4491' }}
               onClick={() => onNavigate(c.demo)}
             >
               See it live → {c.demoLabel}
@@ -969,12 +990,12 @@ const navItems = [
   { id: 'overview', label: 'Overview', icon: '✨', component: null as any },
   { id: 'airtable', label: 'Airtable', icon: '🗂️', component: AirtableDemo },
   { id: 'charts', label: 'Charts', icon: '📊', component: ChartsDemo },
-  { id: 'hr', label: 'HR Directory', icon: '👥', component: HRDemo },
+  { id: 'hr', label: 'HR', icon: '👥', component: HRDemo },
   { id: 'finance', label: 'Finance', icon: '📈', component: FinanceDemo },
   { id: 'performance', label: 'Performance', icon: '🏆', component: PerformanceDemo },
   { id: 'staffing', label: 'Staffing', icon: '🎯', component: StaffingDemo },
-  { id: 'dark', label: 'Dark Theme', icon: '🌙', component: DarkDemo },
-  { id: 'brand', label: 'Brand Theme', icon: '🎨', component: BrandDemo },
+  { id: 'dark', label: 'Dark', icon: '🌙', component: DarkDemo },
+  { id: 'brand', label: 'Brand', icon: '🎨', component: BrandDemo },
   { id: 'states', label: 'States', icon: '⏳', component: StatesDemo },
   { id: 'api', label: 'API', icon: '⚡', component: APIDemo },
 ];
@@ -984,58 +1005,83 @@ function App() {
   const ActiveDemo = navItems.find(n => n.id === activeTab)?.component;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
-        <div className="mx-auto max-w-[1440px] px-6 flex items-center h-12 gap-5">
-          <div className="flex items-center gap-2.5 mr-3">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-[11px]">JT</div>
-            <span className="font-bold text-gray-900 text-sm">@jobtalk/datagrid</span>
-            <span className="rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 px-2 py-0.5 text-[9px] font-bold text-blue-700">v0.1.0</span>
+    <div className="min-h-screen bg-[#f9fafb]">
+      <nav className="sticky top-0 z-50" style={{ backgroundColor: '#0e4491' }}>
+        <div className="mx-auto max-w-[1152px] px-6 flex items-center h-14 gap-4">
+          <div className="flex items-center gap-2.5 mr-2">
+            <div className="h-7 w-7 rounded-md bg-white flex items-center justify-center font-bold text-[11px]" style={{ color: '#0e4491' }}>pg</div>
+            <span className="font-semibold text-white text-[15px] tracking-[-0.01em]">prdgrid</span>
+            <span className="rounded border border-white/25 px-1.5 py-px text-[10px] font-medium text-white/70" style={{ fontFamily: 'var(--mono)' }}>v0.1.0</span>
           </div>
-          <div className="h-4 w-px bg-gray-200" />
+          <div className="h-4 w-px bg-white/20" />
           <div className="flex items-center gap-0.5 overflow-x-auto">
             {navItems.map(n => (
               <button key={n.id}
                 onClick={() => setActiveTab(n.id)}
-                className={`flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+                style={{ border: 'none', font: 'inherit', cursor: 'pointer' }}
+                className={`whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors ${
                   activeTab === n.id
-                    ? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'bg-white/15 text-white'
+                    : 'bg-transparent text-white/65 hover:bg-white/10 hover:text-white'
                 }`}>
-                <span>{n.icon}</span> {n.label}
+                {n.label}
               </button>
             ))}
           </div>
           <div className="flex-1" />
           <a href="https://github.com/taj3rconnect/prdgrid" target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-medium text-white/65 hover:bg-white/10 hover:text-white transition-colors">
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
             GitHub
           </a>
         </div>
       </nav>
 
-      <div className="text-white py-6 px-6" style={{ background: 'linear-gradient(135deg, #2563eb, #4f46e5, #6d28d9)' }}>
-        <div className="mx-auto max-w-[1440px] flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black tracking-tight">Enterprise React Data Grid</h1>
-            <p className="text-blue-200 text-sm mt-0.5">AG Grid-level features. Zero license fees. MIT open source.</p>
+      {activeTab === 'overview' && (
+      <header className="border-b border-[#eaecf0] bg-white">
+        <div className="mx-auto max-w-[1152px] px-6 py-10">
+          <h1 className="text-[32px] font-bold leading-tight tracking-[-0.02em] text-[#101828]">
+            The enterprise React data grid.
+            <br />
+            <span style={{ color: '#0e4491' }}>Zero license fees.</span>
+          </h1>
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#475467]">
+            Sorting, filtering, row grouping, live updates, editing, charts, and exports — the
+            feature set of a commercial grid, MIT-licensed and built on TanStack Table.
+          </p>
+          <div className="mt-5 flex items-center gap-3">
+            <button
+              onClick={() => setActiveTab('airtable')}
+              className="rounded-md px-4 py-2 text-[13.5px] font-semibold text-white transition-colors"
+              style={{ backgroundColor: '#0e4491', border: 'none', font: 'inherit', fontWeight: 600, cursor: 'pointer' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#00388f')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#0e4491')}
+            >
+              Explore the demos
+            </button>
+            <a
+              href="https://github.com/taj3rconnect/prdgrid" target="_blank" rel="noopener noreferrer"
+              className="rounded-md border border-[#d0d5dd] bg-white px-4 py-2 text-[13.5px] font-semibold text-[#344054] transition-colors hover:bg-[#f9fafb]"
+            >
+              View on GitHub
+            </a>
           </div>
-          <div className="hidden md:flex flex-wrap gap-1.5 text-[10px] font-medium max-w-xl justify-end">
-            {['Sorting', 'Filtering', 'Grouping', 'Cell Editing', 'Live Updates',
-              'Dark Mode', 'Themes', 'Pagination', 'Custom Renderers', 'Sparklines'].map(f => (
-              <span key={f} className="rounded-full bg-white/15 backdrop-blur-sm px-2 py-0.5 border border-white/10">{f}</span>
+          <div className="mt-6 flex flex-wrap gap-1.5">
+            {['Sorting', 'Filtering', 'Row Grouping', 'Cell Editing', 'Live Updates',
+              'Dark Mode', 'Themes', 'Pagination', 'Custom Renderers', 'Charts'].map(f => (
+              <span key={f} className="rounded-md border border-[#eaecf0] bg-[#f9fafb] px-2 py-0.5 text-[11px] font-medium text-[#475467]">{f}</span>
             ))}
           </div>
         </div>
-      </div>
+      </header>
+      )}
 
-      <div className="mx-auto max-w-[1440px] px-6 py-8">
+      <div className="mx-auto max-w-[1152px] px-6 py-10">
         {ActiveDemo ? <ActiveDemo /> : <OverviewDemo onNavigate={setActiveTab} />}
-        <footer className="mt-16 border-t border-gray-200 pt-6 pb-10 text-center">
-          <p className="text-sm text-gray-400">@jobtalk/datagrid v0.1.0 — Built by <a href="https://github.com/taj3rconnect" className="text-blue-500 hover:underline">Taj Haslani</a></p>
-          <p className="text-xs text-gray-300 mt-1">TanStack Table v8 + Tailwind CSS — MIT Licensed</p>
-          <p className="text-xs text-gray-300 mt-1">Built with assistance from <a href="https://claude.ai" className="text-blue-400 hover:underline">Claude</a> by Anthropic</p>
+        <footer className="mt-16 border-t border-[#eaecf0] pt-6 pb-10 text-center">
+          <p className="text-sm text-[#667085]">prdgrid v0.1.0 — Built by <a href="https://github.com/taj3rconnect" className="hover:underline" style={{ color: '#0e4491' }}>Taj Haslani</a></p>
+          <p className="text-xs text-[#98a2b3] mt-1">TanStack Table v8 + Tailwind CSS — MIT Licensed</p>
+          <p className="text-xs text-[#98a2b3] mt-1">Built with assistance from <a href="https://claude.ai" className="hover:underline" style={{ color: '#3d7acd' }}>Claude</a> by Anthropic</p>
         </footer>
       </div>
     </div>
