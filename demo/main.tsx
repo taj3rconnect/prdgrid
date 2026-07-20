@@ -12,6 +12,28 @@ import {
 import '../src/styles/datagrid.css';
 
 // ═══════════════════════════════════════════════════════════════════════
+// SEED DATA — served from the prd-demo SQLite API when hosted;
+// falls back to in-browser generators for local dev / static hosting.
+// ═══════════════════════════════════════════════════════════════════════
+
+function useSeedData<T>(table: string, fallback: () => T[]): T[] {
+  const [data, setData] = useState<T[]>(fallback);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/data/${table}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => {
+        if (!cancelled && Array.isArray(j.rows) && j.rows.length > 0) setData(j.rows);
+      })
+      .catch(() => {}); // no API (static hosting / local vite) — keep generated fallback
+    return () => {
+      cancelled = true;
+    };
+  }, [table]);
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // SHARED CELL RENDERERS
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -315,11 +337,14 @@ function TreeEmployeeCell({ data: rawData }: CellRendererParams<HREmployee>) {
 }
 
 function HRDemo() {
-  const [allData] = useState(generateHREmployees);
+  const allData = useSeedData('employees', generateHREmployees);
   const [expanded, setExpanded] = useState<Set<number>>(() => {
     // Start with level 0 expanded
     return new Set(allData.filter(e => e.level === 0).map(e => e.id));
   });
+  useEffect(() => {
+    setExpanded(new Set(allData.filter(e => e.level === 0).map(e => e.id)));
+  }, [allData]);
 
   const toggleExpand = useCallback((id: number) => {
     setExpanded(prev => {
@@ -411,7 +436,9 @@ function HRDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function FinanceDemo() {
-  const [data, setData] = useState(generateFinanceData);
+  const seed = useSeedData('finance', generateFinanceData);
+  const [data, setData] = useState(seed);
+  useEffect(() => setData(seed), [seed]);
 
   // Real-time ticking every 1.5s
   useEffect(() => {
@@ -455,7 +482,7 @@ function FinanceDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function PerformanceDemo() {
-  const [data] = useState(() => generateGameData(1000));
+  const data = useSeedData('games', () => generateGameData(1000));
 
   const cols: ColumnDef<GameRow>[] = [
     // Participant group
@@ -521,7 +548,7 @@ function PerformanceDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function StaffingDemo() {
-  const [data] = useState(() => generateCandidates(250));
+  const data = useSeedData('candidates', () => generateCandidates(250));
 
   const cols: ColumnDef<Candidate>[] = [
     { field: 'id', headerName: '#', width: 65, pinned: 'left', cellStyle: () => ({ fontFamily: 'monospace', fontSize: '11px', color: '#9ca3af' }) },
@@ -569,7 +596,7 @@ function StaffingDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function DarkDemo() {
-  const [data] = useState(() => generateHREmployees());
+  const data = useSeedData('employees', generateHREmployees);
   const cols: ColumnDef<HREmployee>[] = [
     { field: 'name', headerName: 'Employee', width: 280, sortable: true, filter: 'text',
       cellRenderer: EmployeeCell },
@@ -606,7 +633,7 @@ function DarkDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function BrandDemo() {
-  const [data] = useState(() => generateProducts(20));
+  const data = useSeedData('products', () => generateProducts(20));
   const cols: ColumnDef<Product>[] = [
     { field: 'sku', headerName: 'SKU', width: 110 },
     { field: 'name', headerName: 'Product', width: 200, sortable: true },
@@ -669,7 +696,7 @@ function StatesDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function APIDemo() {
-  const [data] = useState(() => generateHREmployees());
+  const data = useSeedData('employees', generateHREmployees);
   const gridRef = useRef<GridApi<HREmployee>>(null);
   const [output, setOutput] = useState('Click any button to call the Grid API...');
 
@@ -718,7 +745,7 @@ function APIDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function AirtableDemo() {
-  const [data] = useState(() => generateCandidates(150));
+  const data = useSeedData('candidates', () => generateCandidates(150));
 
   const cols: ColumnDef<Candidate>[] = [
     { field: 'name', headerName: 'Candidate', dataType: 'text', width: 170, pinned: 'left',
@@ -765,7 +792,7 @@ function AirtableDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function ChartsDemo() {
-  const [data] = useState(() => generateCandidates(300));
+  const data = useSeedData('candidates', () => generateCandidates(300));
 
   const cols: ColumnDef<Candidate>[] = [
     { field: 'name', headerName: 'Candidate', dataType: 'text', width: 170 },
@@ -800,10 +827,138 @@ function ChartsDemo() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// DEMO 0: OVERVIEW — full capability tour
+// ═══════════════════════════════════════════════════════════════════════
+
+interface Capability {
+  icon: string;
+  title: string;
+  points: string[];
+  demo: string;
+  demoLabel: string;
+}
+
+const CAPABILITIES: Capability[] = [
+  {
+    icon: '🗂️', title: 'Airtable-Style Typed Columns', demo: 'airtable', demoLabel: 'Airtable demo',
+    points: [
+      '12 field types via one dataType prop: text, number, currency, percent, date, select, multiSelect, checkbox, rating, progress, link, user',
+      'Each type drives its header icon, default formatter, filter type, alignment, and a built-in renderer — colored chips, star ratings, progress bars, initials avatars — no custom code needed',
+      'Inline sparkline columns (line / bar / win-loss) and accent data-bars behind numeric values',
+    ],
+  },
+  {
+    icon: '🎨', title: 'Theme System — Looks × Accents', demo: 'airtable', demoLabel: 'theme switcher (any tab)',
+    points: [
+      '6 grid looks: Airtable (default), Quartz, Minimal, Striped, Dense, Midnight (dark) — switchable live from the toolbar palette, no remount, state preserved',
+      '8 accent color themes compose with any look; user choices persist per grid in localStorage',
+      'Everything is CSS-token driven (--jt-grid-*) — pass a GridThemeTokens object for a fully custom brand theme',
+    ],
+  },
+  {
+    icon: '📊', title: 'Integrated Charts', demo: 'charts', demoLabel: 'Charts demo',
+    points: [
+      'Grid | Charts view toggle in the toolbar — bar, stacked bar, line, area, and donut chart cards',
+      'Charts aggregate the currently filtered rows and update live as you search, filter, or group',
+      'Add / edit / remove charts in-app, download any card as PNG — hand-rolled SVG, zero chart dependencies',
+    ],
+  },
+  {
+    icon: '⚙️', title: 'Data Operations', demo: 'performance', demoLabel: 'Performance demo',
+    points: [
+      'Multi-column sorting (shift-click), per-column filters (text / number / date / set) plus global quick search and floating filter row',
+      'Drag-to-group rows with sum / avg / count / min / max aggregations and expandable group rows',
+      'Pagination with selectable page sizes; inline cell editing (double-click, Enter, F2)',
+    ],
+  },
+  {
+    icon: '📐', title: 'Column Control', demo: 'hr', demoLabel: 'HR demo',
+    points: [
+      'Resize (drag or double-click), drag-reorder with accent insertion indicator, pin left/right with correct sticky offsets',
+      'Column manager panel: show/hide, reorder, per-column alignment and decimal places — all persisted',
+      'Row-number column that swaps to selection checkboxes on hover, Airtable style',
+    ],
+  },
+  {
+    icon: '🎯', title: 'Rows & Records', demo: 'airtable', demoLabel: 'Airtable demo',
+    points: [
+      'Declarative conditional coloring: rowColorRules / cellColorRules — full-row tints or 3px left edge bars',
+      'Record expand: hover a row number and open the full record in a slide-over with typed fields and ↑/↓ navigation',
+      'Single or multi row selection with accent wash + left bar; live status bar counts',
+    ],
+  },
+  {
+    icon: '📤', title: 'Export Suite', demo: 'staffing', demoLabel: 'Staffing demo',
+    points: [
+      'CSV and Excel (lazy-loaded exceljs), grid-to-image PNG capture',
+      'Email report and scheduled email hooks — POST to your endpoint',
+      'Heavy libraries load on demand only: core bundle stays ~46 KB gzip',
+    ],
+  },
+  {
+    icon: '⚡', title: 'API, Events & Persistence', demo: 'api', demoLabel: 'API playground',
+    points: [
+      'Imperative GridApi via ref: sorting, filtering, selection, export, getState / applyState / resetState',
+      'Events for cell clicks, edits, selection, sort and filter changes',
+      'Versioned localStorage persistence (column order, sizes, visibility, sorts, filters, grouping, density, theme, charts) with legacy-state migration',
+    ],
+  },
+  {
+    icon: '🧩', title: 'Grid Type Presets', demo: 'finance', demoLabel: 'Finance demo',
+    points: [
+      "One gridType prop applies a tuned preset: regular, drilldown, finance (dense, live-tick friendly), editable, highvol (500-row pages)",
+      'Custom cell renderers and header renderers slot in anywhere — see the live-ticking finance P&L and tree drill-down demos',
+      'React 18/19 + TanStack Table v8 + Tailwind; MIT licensed, no runtime fees',
+    ],
+  },
+];
+
+function OverviewDemo({ onNavigate }: { onNavigate: (id: string) => void }) {
+  return (
+    <section className="mb-8">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Everything the grid can do</h2>
+        <p className="text-sm text-gray-500 mt-1 max-w-3xl">
+          prdgrid is an MIT-licensed React data grid with AG-Grid-class data operations and an Airtable-class look.
+          This site is served by the <code className="rounded bg-gray-100 px-1">prd-demo</code> container — every demo
+          tab pulls its rows from a seeded SQLite database over a REST API. Pick any capability below to jump to the
+          demo that shows it.
+        </p>
+      </div>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' }}>
+        {CAPABILITIES.map((c) => (
+          <div key={c.title} className="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-2 flex items-center gap-2.5">
+              <span className="text-xl">{c.icon}</span>
+              <h3 className="text-[15px] font-bold text-gray-900">{c.title}</h3>
+            </div>
+            <ul className="mb-4 flex-1 space-y-1.5">
+              {c.points.map((p, i) => (
+                <li key={i} className="flex gap-2 text-[12.5px] leading-snug text-gray-600">
+                  <span className="mt-0.5 text-blue-500">•</span>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              className="self-start rounded-md bg-blue-50 px-3 py-1.5 text-[12px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-600/20 hover:bg-blue-100"
+              onClick={() => onNavigate(c.demo)}
+            >
+              See it live → {c.demoLabel}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // APP — TABBED NAVIGATION
 // ═══════════════════════════════════════════════════════════════════════
 
 const navItems = [
+  { id: 'overview', label: 'Overview', icon: '✨', component: null as any },
   { id: 'airtable', label: 'Airtable', icon: '🗂️', component: AirtableDemo },
   { id: 'charts', label: 'Charts', icon: '📊', component: ChartsDemo },
   { id: 'hr', label: 'HR Directory', icon: '👥', component: HRDemo },
@@ -817,8 +972,8 @@ const navItems = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState('airtable');
-  const ActiveDemo = navItems.find(n => n.id === activeTab)?.component || AirtableDemo;
+  const [activeTab, setActiveTab] = useState('overview');
+  const ActiveDemo = navItems.find(n => n.id === activeTab)?.component;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -868,7 +1023,7 @@ function App() {
       </div>
 
       <div className="mx-auto max-w-[1440px] px-6 py-8">
-        <ActiveDemo />
+        {ActiveDemo ? <ActiveDemo /> : <OverviewDemo onNavigate={setActiveTab} />}
         <footer className="mt-16 border-t border-gray-200 pt-6 pb-10 text-center">
           <p className="text-sm text-gray-400">@jobtalk/datagrid v0.1.0 — Built by <a href="https://github.com/taj3rconnect" className="text-blue-500 hover:underline">Taj Haslani</a></p>
           <p className="text-xs text-gray-300 mt-1">TanStack Table v8 + Tailwind CSS — MIT Licensed</p>
