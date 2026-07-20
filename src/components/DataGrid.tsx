@@ -11,12 +11,18 @@ import { GroupPanel } from './GroupPanel';
 import { ColumnManager } from './ColumnManager';
 import { ChartPanel } from './ChartPanel';
 import { RecordPanel } from './RecordPanel';
+import { TotalsRow } from './TotalsRow';
+import { StylePanel } from './StylePanel';
+import { ExportModal } from './ExportModal';
+import { HeaderContextMenu } from './HeaderContextMenu';
+import { getColumnHeader } from '../core/gridUtils';
 import { Pagination } from './Pagination';
 import { StatusBar } from './StatusBar';
 import { Overlay } from './Overlay';
 import { exportToCsv } from '../export/csvExport';
 import type {
   DataGridProps,
+  GridStyleSettings,
   GridType,
   GridView,
   GridAppearance,
@@ -84,6 +90,8 @@ interface PersistedUiState {
   look?: GridLook;
   accent?: AccentTheme;
   charts?: ChartConfig[];
+  styleSettings?: GridStyleSettings;
+  showFloatingFilters?: boolean;
 }
 
 function loadUiState(gridId?: string): PersistedUiState | null {
@@ -139,6 +147,12 @@ function DataGridInner<TData = any>(
     defaultCharts,
     rowColorRules,
     recordPanel = true,
+    totalsRow,
+    onRefresh,
+    defaultStyleSettings,
+    emailExportEndpoint,
+    scheduleExportEndpoint,
+    fetchHeaders,
     className,
     gridId,
     persistSettings = false,
@@ -174,7 +188,12 @@ function DataGridInner<TData = any>(
     loading,
   } as DataGridProps<TData>), [merged]);
 
-  const engine = useGridEngine(mergedProps);
+  const persistedUi = useMemo(() => (persistSettings ? loadUiState(gridId) : null), [persistSettings, gridId]);
+  const [styleSettings, setStyleSettings] = useState<GridStyleSettings>(
+    persistedUi?.styleSettings ?? defaultStyleSettings ?? {}
+  );
+
+  const engine = useGridEngine(mergedProps, { hideSelectColumn: styleSettings.showCheckboxColumn === false });
   const {
     table,
     globalFilter,
@@ -197,7 +216,6 @@ function DataGridInner<TData = any>(
   const mountedRef = useRef(false);
 
   // ─── Appearance (look + accent) ───
-  const persistedUi = useMemo(() => (persistSettings ? loadUiState(gridId) : null), [persistSettings, gridId]);
   const defaultLook: GridLook = gridLookProp ?? (theme === 'dark' ? 'midnight' : 'airtable');
   const [appearance, setAppearance] = useState<GridAppearance>({
     look: persistedUi?.look ?? defaultLook,
@@ -205,15 +223,28 @@ function DataGridInner<TData = any>(
   });
 
   const [chartConfigs, setChartConfigs] = useState<ChartConfig[]>(persistedUi?.charts ?? defaultCharts ?? []);
+  const [showStylePanel, setShowStylePanel] = useState(false);
+  const [showFloatingFilters, setShowFloatingFilters] = useState<boolean>(
+    persistedUi?.showFloatingFilters ?? true
+  );
+  const [exportModalTab, setExportModalTab] = useState<'email' | 'schedule' | null>(null);
+  const [headerMenu, setHeaderMenu] = useState<{ columnId: string; x: number; y: number } | null>(null);
 
   // Persist appearance + chart configs (debounced)
   useEffect(() => {
     if (!persistSettings || !gridId) return;
     const timer = setTimeout(() => {
-      saveUiState(gridId, { version: 1, look: appearance.look, accent: appearance.accent, charts: chartConfigs });
+      saveUiState(gridId, {
+        version: 1,
+        look: appearance.look,
+        accent: appearance.accent,
+        charts: chartConfigs,
+        styleSettings,
+        showFloatingFilters,
+      });
     }, 300);
     return () => clearTimeout(timer);
-  }, [persistSettings, gridId, appearance, chartConfigs]);
+  }, [persistSettings, gridId, appearance, chartConfigs, styleSettings, showFloatingFilters]);
 
   const handleAppearanceChange = useCallback(
     (next: GridAppearance) => {
@@ -224,18 +255,28 @@ function DataGridInner<TData = any>(
   );
 
   const themeTokens = typeof theme === 'object' ? (theme as GridThemeTokens) : undefined;
-  const { style: appearanceStyle, isDark } = useMemo(
-    () =>
-      resolveAppearance({
-        look: appearance.look,
-        accent: appearance.accent,
-        density,
-        themeTokens,
-        rowHeight,
-        headerHeight,
-      }),
-    [appearance, density, themeTokens, rowHeight, headerHeight]
-  );
+  const { style: appearanceStyle, isDark } = useMemo(() => {
+    const resolved = resolveAppearance({
+      look: appearance.look,
+      accent: appearance.accent,
+      density,
+      themeTokens,
+      rowHeight,
+      headerHeight,
+    });
+    const st = styleSettings;
+    const style = resolved.style;
+    if (st.headerFontFamily) style['--jt-grid-header-font-family'] = st.headerFontFamily;
+    if (st.headerFontSize) style['--jt-grid-header-font-size'] = st.headerFontSize;
+    if (st.headerFontStyle === 'italic') style['--jt-grid-header-font-style'] = 'italic';
+    if (st.headerFontStyle === 'bold') style['--jt-grid-header-weight'] = '700';
+    if (st.headerFontStyle === 'normal') style['--jt-grid-header-weight'] = '400';
+    if (st.headerFontColor) style['--jt-grid-header-text'] = st.headerFontColor;
+    if (st.rowFontFamily) style['--jt-grid-font-family'] = st.rowFontFamily;
+    if (st.rowFontSize) style['--jt-grid-font-base'] = st.rowFontSize;
+    if (st.altRowBgColor) style['--jt-grid-stripe-bg'] = st.altRowBgColor;
+    return resolved;
+  }, [appearance, density, themeTokens, rowHeight, headerHeight, styleSettings]);
 
   const toolbarConfig: ToolbarConfig = useMemo(() => {
     const base: ToolbarConfig =
@@ -290,6 +331,10 @@ function DataGridInner<TData = any>(
     exportImage: async (params) => {
       const { exportToImage } = await import('../export/psdExport');
       exportToImage(containerRef.current!, params);
+    },
+    exportPdf: async (params) => {
+      const { exportToPdf } = await import('../export/pdfExport');
+      exportToPdf(table, params);
     },
     getState: () => ({
       columnOrder: table.getState().columnOrder,
@@ -401,6 +446,38 @@ function DataGridInner<TData = any>(
 
   const handleExpandRecord = useCallback((rowId: string) => setExpandedRowId(rowId), []);
 
+  // Ctrl/Cmd+C: copy selected rows as TSV, else the focused cell's text
+  const handleCopyKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== 'c') return;
+      if (window.getSelection()?.toString()) return;
+      const selected = table.getSelectedRowModel().rows;
+      if (selected.length > 0) {
+        const visibleCols = table
+          .getVisibleLeafColumns()
+          .filter((c) => !(c.columnDef.meta as any)?.isSelectColumn);
+        const headers = visibleCols.map((c) => getColumnHeader(c));
+        const lines = selected.map((row) =>
+          visibleCols
+            .map((col) => {
+              const val = row.getValue(col.id);
+              return val == null ? '' : Array.isArray(val) ? val.join(', ') : String(val);
+            })
+            .join('\t')
+        );
+        navigator.clipboard?.writeText([headers.join('\t'), ...lines].join('\n'));
+        e.preventDefault();
+        return;
+      }
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.classList.contains('jt-cell')) {
+        navigator.clipboard?.writeText((active.textContent || '').trim());
+        e.preventDefault();
+      }
+    },
+    [table]
+  );
+
   const heightStyle = typeof height === 'number' ? `${height}px` : height;
   const anySelected = Object.keys(engine.rowSelectionState).length > 0;
 
@@ -412,6 +489,7 @@ function DataGridInner<TData = any>(
       data-look={appearance.look}
       data-accent={appearance.accent}
       data-anyselected={anySelected}
+      onKeyDown={handleCopyKeyDown}
     >
       {Object.keys(toolbarConfig).length > 0 && (
         <GridToolbar
@@ -430,6 +508,13 @@ function DataGridInner<TData = any>(
           onViewChange={setView}
           appearance={appearance}
           onAppearanceChange={handleAppearanceChange}
+          onExportPdf={() => gridApi.exportPdf()}
+          onExportEmail={() => setExportModalTab('email')}
+          onExportSchedule={() => setExportModalTab('schedule')}
+          onRefresh={onRefresh}
+          onToggleStylePanel={() => setShowStylePanel(true)}
+          showFloatingFilters={floatingFilters && showFloatingFilters}
+          onToggleFloatingFilters={floatingFilters ? () => setShowFloatingFilters((v) => !v) : undefined}
         />
       )}
 
@@ -446,8 +531,12 @@ function DataGridInner<TData = any>(
       ) : (
         <div className="flex-1 overflow-auto">
           <table className="jt-table w-full border-collapse text-grid-base">
-            <GridHeader table={table} columnAlignment={columnAlignment} />
-            {floatingFilters && <FloatingFilter table={table} />}
+            <GridHeader
+              table={table}
+              columnAlignment={columnAlignment}
+              onHeaderContextMenu={(columnId, x, y) => setHeaderMenu({ columnId, x, y })}
+            />
+            {floatingFilters && showFloatingFilters && <FloatingFilter table={table} />}
             <GridBody
               table={table}
               columnAlignment={columnAlignment}
@@ -460,6 +549,14 @@ function DataGridInner<TData = any>(
               onCellValueChanged={handleCellValueChanged}
               onExpandRecord={recordPanel && rowSelection !== false ? handleExpandRecord : undefined}
             />
+            {totalsRow && (
+              <TotalsRow
+                table={table}
+                config={typeof totalsRow === 'object' ? totalsRow : {}}
+                columnAlignment={columnAlignment}
+                columnDecimals={columnDecimals}
+              />
+            )}
           </table>
         </div>
       )}
@@ -491,6 +588,31 @@ function DataGridInner<TData = any>(
         rowId={expandedRowId}
         onClose={() => setExpandedRowId(null)}
         onNavigate={setExpandedRowId}
+      />
+
+      <StylePanel
+        isOpen={showStylePanel}
+        onClose={() => setShowStylePanel(false)}
+        styles={styleSettings}
+        onStylesChange={setStyleSettings}
+        showSelectionToggle={rowSelection !== false}
+      />
+
+      <ExportModal
+        isOpen={exportModalTab !== null}
+        initialTab={exportModalTab ?? 'email'}
+        onClose={() => setExportModalTab(null)}
+        table={table}
+        emailEndpoint={emailExportEndpoint}
+        scheduleEndpoint={scheduleExportEndpoint}
+        fetchHeaders={fetchHeaders}
+      />
+
+      <HeaderContextMenu
+        column={headerMenu ? table.getColumn(headerMenu.columnId) ?? null : null}
+        position={headerMenu}
+        onClose={() => setHeaderMenu(null)}
+        themeStyle={appearanceStyle as React.CSSProperties}
       />
     </div>
   );

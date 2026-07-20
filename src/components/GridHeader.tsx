@@ -7,9 +7,10 @@ import { SELECT_COLUMN_ID } from '../core/useGridEngine';
 interface GridHeaderProps<TData> {
   table: Table<TData>;
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
+  onHeaderContextMenu?: (columnId: string, x: number, y: number) => void;
 }
 
-export function GridHeader<TData>({ table, columnAlignment }: GridHeaderProps<TData>) {
+export function GridHeader<TData>({ table, columnAlignment, onHeaderContextMenu }: GridHeaderProps<TData>) {
   const [dragColumnId, setDragColumnId] = useState<string | null>(null);
   const [dropColumnId, setDropColumnId] = useState<string | null>(null);
 
@@ -64,6 +65,7 @@ export function GridHeader<TData>({ table, columnAlignment }: GridHeaderProps<TD
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
+                onHeaderContextMenu={onHeaderContextMenu}
               />
             );
           })}

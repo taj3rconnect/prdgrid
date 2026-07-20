@@ -360,6 +360,7 @@ export interface GridApi<TData = any> {
   exportCsv(params?: CsvExportParams): void;
   exportExcel(params?: ExcelExportParams): void;
   exportImage(params?: ImageExportParams): void;
+  exportPdf(params?: PdfExportParams): void;
 
   // State
   getState(): PersistedGridState;
@@ -388,6 +389,14 @@ export interface ImageExportParams {
   fileName?: string;
   format?: 'png' | 'jpeg';
   quality?: number;
+}
+
+export interface PdfExportParams {
+  fileName?: string;
+  title?: string;
+  subtitle?: string;
+  onlySelected?: boolean;
+  columnIds?: string[];
 }
 
 export interface EmailExportParams {
@@ -440,14 +449,42 @@ export interface ToolbarConfig {
   charts?: boolean;
   /** Show the look/accent theme switcher */
   themeSwitcher?: boolean;
+  /** Show the style-settings (fonts/colors) panel button */
+  stylePanel?: boolean;
+  /** Show the floating-filter-row visibility toggle */
+  filterToggle?: boolean;
 }
 
 export interface ExportToolbarConfig {
   csv?: boolean;
   excel?: boolean;
+  pdf?: boolean;
   psd?: boolean;
   email?: boolean;
   scheduleEmail?: boolean;
+}
+
+// ─── Style Settings (user-adjustable, persisted; maps onto CSS tokens) ──
+
+export interface GridStyleSettings {
+  headerFontFamily?: string;
+  headerFontSize?: string;
+  headerFontStyle?: 'normal' | 'bold' | 'italic';
+  headerFontColor?: string;
+  rowFontFamily?: string;
+  rowFontSize?: string;
+  altRowBgColor?: string;
+  /** Show the row-number / selection column (default true) */
+  showCheckboxColumn?: boolean;
+}
+
+// ─── Totals Row ──────────────────────────────────────────────────────
+
+export interface TotalsRowConfig {
+  /** Aggregation shown for numeric columns. Default: 'sum' */
+  aggFunc?: ChartAggregation;
+  /** Label shown in the first column. Default: 'Total' */
+  label?: string;
 }
 
 // ─── Theme ───────────────────────────────────────────────────────────
@@ -644,8 +681,24 @@ export interface DataGridProps<TData = any> {
   noRowsMessage?: string;
 
   // ─── Export config ───
-  /** API endpoint for email/schedule export */
+  /** API endpoint for email export */
   emailExportEndpoint?: string;
+  /** API endpoint for scheduled-report export (defaults to emailExportEndpoint) */
+  scheduleExportEndpoint?: string;
+  /** Extra headers (e.g. auth) sent with email/schedule export requests */
+  fetchHeaders?: Record<string, string>;
+
+  // ─── Totals row ───
+  /** Show an aggregate totals row pinned below the data */
+  totalsRow?: boolean | TotalsRowConfig;
+
+  // ─── Refresh ───
+  /** Show a toolbar refresh button; spinner runs while the returned promise is pending */
+  onRefresh?: () => void | Promise<unknown>;
+
+  // ─── Style settings ───
+  /** Initial user style settings (fonts, colors, alt-row bg); user changes persist per grid */
+  defaultStyleSettings?: GridStyleSettings;
 
   // ─── Events ───
   onGridReady?: (event: GridReadyEvent<TData>) => void;

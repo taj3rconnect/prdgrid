@@ -11,6 +11,7 @@ interface HeaderCellProps<TData> {
   onDragOver?: (columnId: string) => void;
   onDragEnd?: () => void;
   isDragTarget?: boolean;
+  onHeaderContextMenu?: (columnId: string, x: number, y: number) => void;
 }
 
 export function HeaderCell<TData>({
@@ -20,6 +21,7 @@ export function HeaderCell<TData>({
   onDragOver,
   onDragEnd,
   isDragTarget,
+  onHeaderContextMenu,
 }: HeaderCellProps<TData>) {
   const column = header.column;
   const meta = column.columnDef.meta as ColumnMeta<TData> | undefined;
@@ -75,6 +77,11 @@ export function HeaderCell<TData>({
       onDrop={(e) => {
         e.preventDefault();
         onDragEnd?.();
+      }}
+      onContextMenu={(e) => {
+        if (!onHeaderContextMenu) return;
+        e.preventDefault();
+        onHeaderContextMenu(column.id, e.clientX, e.clientY);
       }}
     >
       <div

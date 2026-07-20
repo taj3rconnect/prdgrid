@@ -65,7 +65,7 @@
 
 /* ─── Base Grid Styles ─── */
 .jt-datagrid {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-family: var(--jt-grid-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif);
   font-size: var(--jt-grid-font-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -99,7 +99,9 @@
   padding: 0 var(--jt-grid-cell-px);
   background: var(--jt-grid-header-bg);
   color: var(--jt-grid-header-text);
-  font-size: var(--jt-grid-font-base);
+  font-family: var(--jt-grid-header-font-family, inherit);
+  font-size: var(--jt-grid-header-font-size, var(--jt-grid-font-base));
+  font-style: var(--jt-grid-header-font-style, normal);
   font-weight: var(--jt-grid-header-weight);
   border-right: var(--jt-grid-col-border-width) solid var(--jt-grid-border);
   border-bottom: 1px solid var(--jt-grid-border-strong);
@@ -351,6 +353,51 @@
 /* Pinned headers must out-rank the relative positioning above */
 .jt-datagrid th.sticky {
   position: sticky;
+}
+
+/* ─── Totals row ─── */
+.jt-totals-cell {
+  height: calc(var(--jt-grid-row-height) - 4px);
+  padding: 0 var(--jt-grid-cell-px);
+  background: var(--jt-grid-header-bg);
+  border-top: 2px solid var(--jt-grid-border-strong);
+  border-right: var(--jt-grid-col-border-width) solid var(--jt-grid-border);
+  color: var(--jt-grid-header-text);
+  font-size: var(--jt-grid-font-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Tooltips (jt-tip + data-tip) ─── */
+.jt-tip {
+  position: relative;
+}
+
+.jt-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #f9fafb;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 100;
+}
+
+.jt-tip:hover::after {
+  opacity: 1;
 }
 
 /* ─── Chart cards ─── */

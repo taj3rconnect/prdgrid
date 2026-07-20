@@ -16,7 +16,7 @@ import '../src/styles/datagrid.css';
 // falls back to in-browser generators for local dev / static hosting.
 // ═══════════════════════════════════════════════════════════════════════
 
-function useSeedData<T>(table: string, fallback: () => T[]): T[] {
+function useSeedData<T>(table: string, fallback: () => T[], refreshKey = 0): T[] {
   const [data, setData] = useState<T[]>(fallback);
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +29,7 @@ function useSeedData<T>(table: string, fallback: () => T[]): T[] {
     return () => {
       cancelled = true;
     };
-  }, [table]);
+  }, [table, refreshKey]);
   return data;
 }
 
@@ -585,7 +585,10 @@ function StaffingDemo() {
         defaultColDef={{ sortable: true, resizable: true, minWidth: 55 }}
         getRowId={d => String(d.id)} rowSelection="multiple"
         pagination paginationPageSize={50} groupPanel floatingFilters statusBar height={600}
-        toolbar={{ search: true, columnManager: true, export: { csv: true, excel: true }, density: true }}
+        totalsRow={{ aggFunc: 'sum', label: 'Total' }}
+        emailExportEndpoint="/api/report/email"
+        scheduleExportEndpoint="/api/report/schedule"
+        toolbar={{ search: true, columnManager: true, density: true, export: { csv: true, excel: true, pdf: true, email: true, scheduleEmail: true } }}
       />
     </Section>
   );
@@ -745,7 +748,8 @@ function APIDemo() {
 // ═══════════════════════════════════════════════════════════════════════
 
 function AirtableDemo() {
-  const data = useSeedData('candidates', () => generateCandidates(150));
+  const [refreshKey, setRefreshKey] = useState(0);
+  const data = useSeedData('candidates', () => generateCandidates(150), refreshKey);
 
   const cols: ColumnDef<Candidate>[] = [
     { field: 'name', headerName: 'Candidate', dataType: 'text', width: 170, pinned: 'left',
@@ -776,7 +780,11 @@ function AirtableDemo() {
         defaultColDef={{ sortable: true, resizable: true, minWidth: 60 }}
         getRowId={d => String(d.id)} rowSelection="multiple"
         pagination paginationPageSize={50} floatingFilters statusBar height={640}
-        persistSettings
+        persistSettings totalsRow
+        onRefresh={() => {
+          setRefreshKey((k) => k + 1);
+          return new Promise((r) => setTimeout(r, 600));
+        }}
         rowColorRules={[
           { when: (d) => d.stage === 'Rejected', color: 'color-mix(in srgb, var(--jt-grid-error) 7%, transparent)', target: 'row' },
           { when: (d) => d.priority === 'Hot', color: 'var(--jt-grid-warning)', target: 'leftBar' },
@@ -852,7 +860,7 @@ const CAPABILITIES: Capability[] = [
     points: [
       '6 grid looks: Airtable (default), Quartz, Minimal, Striped, Dense, Midnight (dark) — switchable live from the toolbar palette, no remount, state preserved',
       '8 accent color themes compose with any look; user choices persist per grid in localStorage',
-      'Everything is CSS-token driven (--jt-grid-*) — pass a GridThemeTokens object for a fully custom brand theme',
+      'Style panel for end users (fonts, sizes, colors, alt-row bg) plus GridThemeTokens for a fully custom brand theme — all CSS-token driven',
     ],
   },
   {
@@ -868,7 +876,7 @@ const CAPABILITIES: Capability[] = [
     points: [
       'Multi-column sorting (shift-click), per-column filters (text / number / date / set) plus global quick search and floating filter row',
       'Drag-to-group rows with sum / avg / count / min / max aggregations and expandable group rows',
-      'Pagination with selectable page sizes; inline cell editing (double-click, Enter, F2)',
+      'Pagination, inline editing, totals row, right-click header context menu, Ctrl+C copy-as-TSV, refresh button with spinner',
     ],
   },
   {
@@ -890,8 +898,8 @@ const CAPABILITIES: Capability[] = [
   {
     icon: '📤', title: 'Export Suite', demo: 'staffing', demoLabel: 'Staffing demo',
     points: [
-      'CSV and Excel (lazy-loaded exceljs), grid-to-image PNG capture',
-      'Email report and scheduled email hooks — POST to your endpoint',
+      'CSV, Excel, and PDF downloads (lazy-loaded libs), grid-to-image PNG capture',
+      'In-app Send Report modal: email now or schedule daily/weekly/monthly — HTML, PDF, or CSV — POSTed to your endpoint with auth headers',
       'Heavy libraries load on demand only: core bundle stays ~46 KB gzip',
     ],
   },

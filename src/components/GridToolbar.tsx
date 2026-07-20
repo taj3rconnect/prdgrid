@@ -22,6 +22,11 @@ interface GridToolbarProps<TData> {
   onViewChange?: (view: GridView) => void;
   appearance?: GridAppearance;
   onAppearanceChange?: (appearance: GridAppearance) => void;
+  onExportPdf?: () => void;
+  onRefresh?: () => void | Promise<unknown>;
+  onToggleStylePanel?: () => void;
+  showFloatingFilters?: boolean;
+  onToggleFloatingFilters?: () => void;
 }
 
 function useClickOutside(onOutside: () => void) {
@@ -83,8 +88,14 @@ export function GridToolbar<TData>({
   onViewChange,
   appearance,
   onAppearanceChange,
+  onExportPdf,
+  onRefresh,
+  onToggleStylePanel,
+  showFloatingFilters,
+  onToggleFloatingFilters,
 }: GridToolbarProps<TData>) {
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [showDensityMenu, setShowDensityMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const exportRef = useClickOutside(() => setShowExportMenu(false));
@@ -178,14 +189,66 @@ export function GridToolbar<TData>({
 
       <div className="flex-1" />
 
+      {/* Refresh */}
+      {onRefresh && (
+        <button
+          className="jt-btn jt-tip"
+          data-tip="Refresh data"
+          onClick={async () => {
+            try {
+              setRefreshing(true);
+              await onRefresh();
+            } finally {
+              setRefreshing(false);
+            }
+          }}
+        >
+          <svg
+            className={clsx('h-4 w-4', refreshing && 'animate-spin')}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 12a9 9 0 11-2.64-6.36M21 3v6h-6" />
+          </svg>
+        </button>
+      )}
+
+      {/* Floating-filter toggle */}
+      {config.filterToggle !== false && onToggleFloatingFilters && (
+        <button
+          className={clsx('jt-btn jt-tip', showFloatingFilters && 'jt-btn-active')}
+          data-tip={showFloatingFilters ? 'Hide column filters' : 'Show column filters'}
+          onClick={onToggleFloatingFilters}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+          </svg>
+        </button>
+      )}
+
+      {/* Style panel */}
+      {config.stylePanel !== false && onToggleStylePanel && (
+        <button className="jt-btn jt-tip" data-tip="Style settings" onClick={onToggleStylePanel}>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19l7-7 3 3-7 7-3-3z" />
+            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+            <circle cx="11" cy="11" r="2" />
+          </svg>
+        </button>
+      )}
+
       {/* Reset */}
-      <button className="jt-btn" onClick={onResetState} title="Reset all settings">
+      <button className="jt-btn jt-tip" onClick={onResetState} data-tip="Reset grid settings">
         Reset
       </button>
 
       {/* Column Manager */}
       {config.columnManager && (
-        <button className="jt-btn" onClick={onToggleColumnManager} title="Manage columns">
+        <button className="jt-btn jt-tip" onClick={onToggleColumnManager} data-tip="Manage columns">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
           </svg>
@@ -196,9 +259,9 @@ export function GridToolbar<TData>({
       {config.density && (
         <div ref={densityRef} className="relative">
           <button
-            className={clsx('jt-btn', showDensityMenu && 'jt-btn-active')}
+            className={clsx('jt-btn jt-tip', showDensityMenu && 'jt-btn-active')}
             onClick={() => setShowDensityMenu(!showDensityMenu)}
-            title="Row height"
+            data-tip="Row height"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -230,9 +293,9 @@ export function GridToolbar<TData>({
       {config.export && (
         <div ref={exportRef} className="relative">
           <button
-            className={clsx('jt-btn', showExportMenu && 'jt-btn-active')}
+            className={clsx('jt-btn jt-tip', showExportMenu && 'jt-btn-active')}
             onClick={() => setShowExportMenu(!showExportMenu)}
-            title="Export"
+            data-tip="Export"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -248,6 +311,11 @@ export function GridToolbar<TData>({
               {exportConfig.excel && (
                 <button className="jt-menu-item" onClick={() => { onExportExcel?.(); setShowExportMenu(false); }}>
                   <span>📊</span> Download Excel
+                </button>
+              )}
+              {exportConfig.pdf && (
+                <button className="jt-menu-item" onClick={() => { onExportPdf?.(); setShowExportMenu(false); }}>
+                  <span>📑</span> Download PDF
                 </button>
               )}
               {exportConfig.psd && (
@@ -275,9 +343,9 @@ export function GridToolbar<TData>({
       {showTheme && (
         <div ref={themeRef} className="relative">
           <button
-            className={clsx('jt-btn', showThemeMenu && 'jt-btn-active')}
+            className={clsx('jt-btn jt-tip', showThemeMenu && 'jt-btn-active')}
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            title="Grid appearance"
+            data-tip="Grid appearance"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 21a9 9 0 110-18c4.97 0 9 3.58 9 8 0 2.76-2.24 5-5 5h-1.77c-.84 0-1.52.68-1.52 1.52 0 .36.13.7.35.97.24.29.44.65.44 1.01A1.5 1.5 0 0112 21z" />

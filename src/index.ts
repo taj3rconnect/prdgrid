@@ -20,6 +20,9 @@ export type {
   SparklineType,
   RowColorRule,
   CellColorRule,
+  GridStyleSettings,
+  TotalsRowConfig,
+  PdfExportParams,
   ChartType,
   ChartAggregation,
   ChartConfig,
@@ -84,6 +87,7 @@ export { Sparkline, Chip, FieldTypeIcon } from './components/renderers';
 export { exportToCsv } from './export/csvExport';
 export { exportToExcel } from './export/excelExport';
 export { exportToImage } from './export/psdExport';
+export { exportToPdf, generatePdfBase64, generateHtmlTable } from './export/pdfExport';
 export { emailExport } from './export/emailExport';
 export { scheduleExport } from './export/scheduleExport';
 

@@ -212,7 +212,12 @@ function savePersistedState(gridId: string, state: PersistedGridState): void {
 
 // ─── Main Hook ───────────────────────────────────────────────────────
 
-export function useGridEngine<TData>(props: DataGridProps<TData>) {
+export interface GridEngineOptions {
+  /** Hide the row-number/selection display column (style-panel toggle) */
+  hideSelectColumn?: boolean;
+}
+
+export function useGridEngine<TData>(props: DataGridProps<TData>, options?: GridEngineOptions) {
   const {
     rowData,
     columnDefs,
@@ -335,7 +340,7 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
   const pageSize = persisted?.pageSize || paginationPageSize;
 
   // ─── Map columns ───
-  const showSelectColumn = rowSelection !== false;
+  const showSelectColumn = rowSelection !== false && !options?.hideSelectColumn;
   const tanstackColumns = useMemo(() => {
     const cols = columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup));
     if (showSelectColumn) {

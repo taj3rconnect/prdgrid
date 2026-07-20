@@ -12,6 +12,18 @@ seedAll();
 
 const app = express();
 app.disable('x-powered-by');
+app.use(express.json({ limit: '10mb' }));
+
+// Demo sink for the grid's email/schedule export modal
+app.post('/api/report/:kind', (req, res) => {
+  const { kind } = req.params;
+  if (kind !== 'email' && kind !== 'schedule') {
+    res.status(404).json({ error: 'Unknown report kind' });
+    return;
+  }
+  console.log(`[report] ${kind} request:`, JSON.stringify({ ...req.body, attachment: req.body?.attachment ? '<omitted>' : undefined, bodyHtml: req.body?.bodyHtml ? `<${String(req.body.bodyHtml).length} chars>` : undefined }));
+  res.json({ ok: true, kind, note: 'Demo endpoint — request logged, no email actually sent.' });
+});
 
 app.get('/api/v1/health', (_req, res) => {
   res.json({
