@@ -1008,11 +1008,16 @@ function App() {
     <div className="min-h-screen bg-[#f9fafb]">
       <nav className="sticky top-0 z-50" style={{ backgroundColor: '#0e4491' }}>
         <div className="mx-auto max-w-[1152px] px-6 flex items-center h-14 gap-4">
-          <div className="flex items-center gap-2.5 mr-2">
+          <button
+            className="flex items-center gap-2.5 mr-2 bg-transparent"
+            style={{ border: 'none', font: 'inherit', cursor: 'pointer', padding: 0 }}
+            title="Back to overview"
+            onClick={() => setActiveTab('overview')}
+          >
             <div className="h-7 w-7 rounded-md bg-white flex items-center justify-center font-bold text-[11px]" style={{ color: '#0e4491' }}>pg</div>
             <span className="font-semibold text-white text-[15px] tracking-[-0.01em]">prdgrid</span>
             <span className="rounded border border-white/25 px-1.5 py-px text-[10px] font-medium text-white/70" style={{ fontFamily: 'var(--mono)' }}>v0.1.0</span>
-          </div>
+          </button>
           <div className="h-4 w-px bg-white/20" />
           <div className="flex items-center gap-0.5 overflow-x-auto">
             {navItems.map(n => (
