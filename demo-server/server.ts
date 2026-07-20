@@ -53,9 +53,25 @@ app.get('/api/data/:table', (req, res) => {
 });
 
 if (existsSync(STATIC_DIR)) {
-  app.use(express.static(STATIC_DIR, { maxAge: '1h', index: 'index.html' }));
+  // index.html must revalidate every load so deploys show instantly;
+  // hashed /assets/* are content-addressed and can cache forever.
+  app.use(
+    express.static(STATIC_DIR, {
+      index: 'index.html',
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        } else if (filePath.includes('assets')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else {
+          res.setHeader('Cache-Control', 'public, max-age=3600');
+        }
+      },
+    })
+  );
   app.use((req, res, next) => {
     if (req.method !== 'GET' || req.path.startsWith('/api/')) return next();
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(resolve(STATIC_DIR, 'index.html'));
   });
 } else {
