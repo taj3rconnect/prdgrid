@@ -197,7 +197,7 @@ export interface CellClassParams<TData = any> {
   rowIndex: number;
 }
 
-export interface CellStyleParams<TData = any> extends CellClassParams<TData> {}
+export type CellStyleParams<TData = any> = CellClassParams<TData>;
 
 export interface EditableParams<TData = any> {
   data: TData;
