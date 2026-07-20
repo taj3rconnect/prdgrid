@@ -417,8 +417,18 @@ export interface ScheduleExportParams extends EmailExportParams {
 
 // ─── Persisted State ─────────────────────────────────────────────────
 
+/** Appearance/chart UI state persisted alongside grid state (schema v3+). */
+export interface PersistedUiState {
+  version?: number;
+  look?: GridLook;
+  accent?: AccentTheme;
+  charts?: ChartConfig[];
+  styleSettings?: GridStyleSettings;
+  showFloatingFilters?: boolean;
+}
+
 export interface PersistedGridState {
-  /** Schema version (2 = current; absent = legacy v1, accepted and upgraded on next save) */
+  /** Schema version (3 = current, adds `ui`; 2 = grid-only; absent = legacy v1, upgraded on next save) */
   version?: number;
   /** Persisted density */
   density?: GridDensity;
@@ -435,6 +445,8 @@ export interface PersistedGridState {
   columnDecimals?: Record<string, number>;
   /** User-configured column alignment overrides */
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
+  /** Appearance/chart UI state (schema v3+) */
+  ui?: PersistedUiState;
 }
 
 // ─── Toolbar Config ──────────────────────────────────────────────────

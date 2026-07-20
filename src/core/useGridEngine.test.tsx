@@ -118,7 +118,7 @@ describe('useGridEngine characterization', () => {
 
     const raw = localStorage.getItem('jt-grid-char');
     expect(raw).toBeTruthy();
-    expect(JSON.parse(raw!).version).toBe(2);
+    expect(JSON.parse(raw!).version).toBe(3);
 
     const second = run(props);
     expect(second.result.current.sorting).toEqual([{ id: 'name', desc: true }]);
@@ -151,7 +151,8 @@ describe('useGridEngine characterization', () => {
   });
 
   it('isNumericDataType covers the numeric set', () => {
-    expect(['number', 'currency', 'percent', 'progress', 'rating'].every(isNumericDataType)).toBe(true);
+    const numeric = ['number', 'currency', 'percent', 'progress', 'rating'] as const;
+    expect(numeric.every((t) => isNumericDataType(t))).toBe(true);
     expect(isNumericDataType('text' as any)).toBe(false);
     expect(isNumericDataType(undefined)).toBe(false);
   });
