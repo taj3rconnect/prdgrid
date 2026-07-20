@@ -1,23 +1,63 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Custom Property Defaults (Light Theme) ─── */
-:root {
+/* ─── CSS Custom Property Defaults — "airtable" look, light, blue accent ─── */
+.jt-datagrid {
+  /* surfaces & borders */
   --jt-grid-bg: #ffffff;
   --jt-grid-bg-alt: #f9fafb;
-  --jt-grid-border: #e5e7eb;
-  --jt-grid-header-bg: #f3f4f6;
-  --jt-grid-header-text: #111827;
+  --jt-grid-border: #e0e6ed;
+  --jt-grid-border-strong: #d0d7de;
+  --jt-grid-row-border-width: 1px;
+  --jt-grid-col-border-width: 1px;
+  --jt-grid-outer-radius: 8px;
+  --jt-grid-stripe-bg: transparent;
+  --jt-grid-shadow: 0 1px 3px rgb(16 24 40 / 0.06);
+  /* header */
+  --jt-grid-header-bg: #f7f8fa;
+  --jt-grid-header-text: #4d5358;
+  --jt-grid-header-height: 34px;
+  --jt-grid-header-weight: 500;
+  --jt-grid-header-icon: #9aa4af;
+  --jt-grid-header-hover: #eef1f5;
+  /* rows & cells */
   --jt-grid-text: #374151;
   --jt-grid-text-secondary: #6b7280;
-  --jt-grid-accent: #3b82f6;
-  --jt-grid-accent-light: #dbeafe;
-  --jt-grid-row-hover: #f3f4f6;
-  --jt-grid-row-selected: #eff6ff;
+  --jt-grid-row-height: 36px;
+  --jt-grid-cell-px: 10px;
+  --jt-grid-row-hover: #f2f4f8;
+  --jt-grid-row-selected: #e8f0fe;
   --jt-grid-cell-edit: #fef3c7;
+  --jt-grid-density-scale: 1;
+  /* accent system */
+  --jt-grid-accent: #2f6fe0;
+  --jt-grid-accent-hover: #2560c8;
+  --jt-grid-accent-light: #dbe7fd;
+  --jt-grid-accent-text: #ffffff;
+  --jt-grid-chip-bg: #dbe7fd;
+  --jt-grid-chip-text: #1e429f;
+  /* status */
   --jt-grid-success: #10b981;
   --jt-grid-warning: #f59e0b;
   --jt-grid-error: #ef4444;
+  /* chrome */
+  --jt-grid-toolbar-bg: #ffffff;
+  --jt-grid-menu-bg: #ffffff;
+  --jt-grid-menu-shadow: 0 4px 16px rgb(16 24 40 / 0.12);
+  --jt-grid-input-bg: #ffffff;
+  --jt-grid-input-border: #d0d7de;
+  --jt-grid-scrollbar: #cbd5e1;
+  --jt-grid-scrollbar-hover: #94a3b8;
+  /* charts */
+  --jt-grid-chart-1: #2f6fe0;
+  --jt-grid-chart-2: #12b76a;
+  --jt-grid-chart-3: #f79009;
+  --jt-grid-chart-4: #ee46bc;
+  --jt-grid-chart-5: #7a5af8;
+  --jt-grid-chart-6: #0ba5ec;
+  --jt-grid-chart-grid: #eef1f5;
+  --jt-grid-chart-card-bg: #ffffff;
+  /* type */
   --jt-grid-font-sm: 0.75rem;
   --jt-grid-font-base: 0.8125rem;
   --jt-grid-font-lg: 0.875rem;
@@ -30,13 +70,18 @@
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   position: relative;
+  border: 1px solid var(--jt-grid-border-strong);
+  border-radius: var(--jt-grid-outer-radius);
+  box-shadow: var(--jt-grid-shadow);
+  background: var(--jt-grid-bg);
+  color: var(--jt-grid-text);
 }
 
 .jt-datagrid * {
   box-sizing: border-box;
 }
 
-/* ─── Table Styles ─── */
+/* ─── Table ─── */
 .jt-table {
   table-layout: fixed;
 }
@@ -50,38 +95,227 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  height: var(--jt-grid-header-height);
+  padding: 0 var(--jt-grid-cell-px);
+  background: var(--jt-grid-header-bg);
+  color: var(--jt-grid-header-text);
+  font-size: var(--jt-grid-font-base);
+  font-weight: var(--jt-grid-header-weight);
+  border-right: var(--jt-grid-col-border-width) solid var(--jt-grid-border);
+  border-bottom: 1px solid var(--jt-grid-border-strong);
+  transition: background-color 0.1s ease-out;
 }
 
-/* ─── Cell ─── */
+.jt-header-cell:hover {
+  background: var(--jt-grid-header-hover);
+}
+
+.jt-floating-filters th {
+  background: var(--jt-grid-bg);
+  border-right: var(--jt-grid-col-border-width) solid var(--jt-grid-border);
+  border-bottom: 1px solid var(--jt-grid-border);
+  padding: 3px 4px;
+}
+
+/* ─── Rows & Cells ─── */
+.jt-body .jt-row {
+  background: var(--jt-grid-bg);
+}
+
+.jt-body .jt-row:nth-child(even) {
+  background: var(--jt-grid-stripe-bg);
+}
+
+.jt-row {
+  border-bottom: var(--jt-grid-row-border-width) solid var(--jt-grid-border);
+}
+
 .jt-cell {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: background-color 0.1s ease;
+  height: var(--jt-grid-row-height);
+  padding: 0 var(--jt-grid-cell-px);
+  border-right: var(--jt-grid-col-border-width) solid var(--jt-grid-border);
+  font-size: var(--jt-grid-font-base);
+  transition: background-color 0.1s ease-out;
 }
 
 .jt-cell:focus {
   outline: 2px solid var(--jt-grid-accent);
   outline-offset: -2px;
+  border-radius: 2px;
   z-index: 1;
 }
 
-/* ─── Row hover ─── */
+/* Row hover: whole-row wash */
 .jt-row:hover .jt-cell {
   background-color: var(--jt-grid-row-hover);
 }
 
-.jt-row[data-selected="true"] .jt-cell {
-  background-color: var(--jt-grid-row-selected);
+/* Selection: accent wash + left edge bar; wash stays under cell borders */
+.jt-row[data-selected="true"] {
+  box-shadow: inset 2px 0 0 var(--jt-grid-accent);
 }
 
+.jt-row[data-selected="true"] .jt-cell,
 .jt-row[data-selected="true"]:hover .jt-cell {
   background-color: var(--jt-grid-row-selected);
 }
 
+/* Pinned cells need a solid background over scrolling content */
+.jt-cell-pinned {
+  background: var(--jt-grid-bg);
+}
+
+.jt-cell-pinned-edge-left {
+  border-right: 1px solid var(--jt-grid-border-strong);
+}
+
+.jt-cell-pinned-edge-right {
+  border-left: 1px solid var(--jt-grid-border-strong);
+}
+
+/* Row-number / selection column */
+.jt-cell-select .jt-rownum {
+  color: var(--jt-grid-text-secondary);
+  font-size: var(--jt-grid-font-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.jt-cell-select .jt-select-hover {
+  display: none;
+}
+
+.jt-row:hover .jt-cell-select .jt-rownum,
+.jt-row[data-selected="true"] .jt-cell-select .jt-rownum,
+.jt-datagrid[data-anyselected="true"] .jt-cell-select .jt-rownum {
+  display: none;
+}
+
+.jt-row:hover .jt-cell-select .jt-select-hover,
+.jt-row[data-selected="true"] .jt-cell-select .jt-select-hover,
+.jt-datagrid[data-anyselected="true"] .jt-cell-select .jt-select-hover {
+  display: flex;
+}
+
+.jt-expand-btn {
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+}
+
+.jt-row:hover .jt-expand-btn {
+  opacity: 1;
+}
+
+/* ─── Chrome primitives (toolbar buttons, menus, inputs) ─── */
+.jt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: var(--jt-grid-font-base);
+  font-weight: 500;
+  color: var(--jt-grid-text-secondary);
+  transition: background-color 0.1s ease-out, color 0.1s ease-out;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.jt-btn:hover {
+  background: var(--jt-grid-row-hover);
+  color: var(--jt-grid-text);
+}
+
+.jt-btn-active {
+  background: var(--jt-grid-accent-light);
+  color: var(--jt-grid-accent);
+}
+
+.jt-btn-active:hover {
+  background: var(--jt-grid-accent-light);
+  color: var(--jt-grid-accent);
+}
+
+.jt-menu {
+  background: var(--jt-grid-menu-bg);
+  border: 1px solid var(--jt-grid-border);
+  border-radius: 8px;
+  box-shadow: var(--jt-grid-menu-shadow);
+  padding: 4px;
+  z-index: 50;
+  animation: jt-menu-in 0.16s ease-out;
+}
+
+@keyframes jt-menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.jt-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: var(--jt-grid-font-base);
+  color: var(--jt-grid-text);
+  text-align: left;
+  transition: background-color 0.1s ease-out;
+  cursor: pointer;
+}
+
+.jt-menu-item:hover {
+  background: var(--jt-grid-row-hover);
+}
+
+.jt-menu-item-active {
+  background: var(--jt-grid-accent-light);
+  color: var(--jt-grid-accent);
+  font-weight: 500;
+}
+
+.jt-input {
+  background: var(--jt-grid-input-bg);
+  border: 1px solid var(--jt-grid-input-border);
+  border-radius: 6px;
+  color: var(--jt-grid-text);
+  font-size: var(--jt-grid-font-base);
+  transition: border-color 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+
+.jt-input::placeholder {
+  color: var(--jt-grid-text-secondary);
+}
+
+.jt-input:focus {
+  outline: none;
+  border-color: var(--jt-grid-accent);
+  box-shadow: 0 0 0 1px var(--jt-grid-accent);
+}
+
+/* ─── Chips ─── */
+.jt-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  font-size: var(--jt-grid-font-sm);
+  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ─── Value change flash animation ─── */
 .jt-cell-flash {
-  background-color: rgba(68, 173, 73, 0.38) !important;
+  background-color: color-mix(in srgb, var(--jt-grid-success) 32%, transparent) !important;
   transition: background-color 0.1s ease-in;
 }
 
@@ -90,7 +324,7 @@
   transition: background-color 1s ease-out;
 }
 
-/* ─── Scrollbar Styling ─── */
+/* ─── Scrollbar ─── */
 .jt-datagrid ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -101,20 +335,34 @@
 }
 
 .jt-datagrid ::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: var(--jt-grid-scrollbar);
   border-radius: 4px;
 }
 
 .jt-datagrid ::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+  background-color: var(--jt-grid-scrollbar-hover);
 }
 
-/* ─── Column resize cursor ─── */
+/* ─── Column resize ─── */
 .jt-datagrid th {
   position: relative;
 }
 
-/* ─── Print styles ─── */
+/* Pinned headers must out-rank the relative positioning above */
+.jt-datagrid th.sticky {
+  position: sticky;
+}
+
+/* ─── Chart cards ─── */
+.jt-chart-card {
+  background: var(--jt-grid-chart-card-bg);
+  border: 1px solid var(--jt-grid-border);
+  border-radius: 10px;
+  box-shadow: var(--jt-grid-shadow);
+  padding: 16px;
+}
+
+/* ─── Print ─── */
 @media print {
   .jt-toolbar,
   .jt-pagination,

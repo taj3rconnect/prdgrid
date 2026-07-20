@@ -44,14 +44,10 @@ export function reorderColumn<TData>(table: Table<TData>, fromId: string, toId: 
   }
 }
 
-// ─── Density padding class ──────────────────────────────────────────
+// ─── Density → row height (px) ──────────────────────────────────────
 
-const DENSITY_PADDING: Record<GridDensity, string> = {
-  compact: 'py-1',
-  normal: 'py-2',
-  comfortable: 'py-3',
+export const DENSITY_ROW_HEIGHT: Record<GridDensity, number> = {
+  compact: 30,
+  normal: 36,
+  comfortable: 44,
 };
-
-export function densityPadding(density: GridDensity): string {
-  return DENSITY_PADDING[density];
-}

@@ -38,10 +38,8 @@ export function GroupPanel<TData>({ table, grouping, onGroupingChange }: GroupPa
 
   return (
     <div
-      className={clsx(
-        'jt-group-panel',
-        'flex min-h-[40px] items-center gap-2 border-b border-grid-border bg-gray-50 px-3 py-1.5',
-      )}
+      className={clsx('jt-group-panel', 'flex min-h-[38px] items-center gap-2 px-3 py-1.5')}
+      style={{ backgroundColor: 'var(--jt-grid-header-bg)', borderBottom: '1px solid var(--jt-grid-border)' }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -60,7 +58,7 @@ export function GroupPanel<TData>({ table, grouping, onGroupingChange }: GroupPa
               <span className="inline-flex items-center gap-1 rounded-full bg-grid-accent-light px-2.5 py-0.5 text-grid-sm font-medium text-grid-accent">
                 {getColumnName(colId)}
                 <button
-                  className="ml-0.5 text-grid-accent hover:text-blue-800"
+                  className="ml-0.5 text-grid-accent hover:text-grid-accent-hover"
                   onClick={() => removeGroup(colId)}
                 >
                   &times;

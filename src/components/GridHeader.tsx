@@ -2,14 +2,14 @@ import { useState, useCallback } from 'react';
 import { Table } from '@tanstack/react-table';
 import { HeaderCell } from './HeaderCell';
 import { reorderColumn } from '../core/gridUtils';
+import { SELECT_COLUMN_ID } from '../core/useGridEngine';
 
 interface GridHeaderProps<TData> {
   table: Table<TData>;
-  showSelectionColumn: boolean;
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
 }
 
-export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment }: GridHeaderProps<TData>) {
+export function GridHeader<TData>({ table, columnAlignment }: GridHeaderProps<TData>) {
   const [dragColumnId, setDragColumnId] = useState<string | null>(null);
   const [dropColumnId, setDropColumnId] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
   }, []);
 
   const handleDragEnd = useCallback(() => {
-    if (dragColumnId && dropColumnId && dragColumnId !== dropColumnId) {
+    if (dragColumnId && dropColumnId && dragColumnId !== dropColumnId && dropColumnId !== SELECT_COLUMN_ID) {
       reorderColumn(table, dragColumnId, dropColumnId);
     }
     setDragColumnId(null);
@@ -32,34 +32,41 @@ export function GridHeader<TData>({ table, showSelectionColumn, columnAlignment 
   return (
     <thead className="jt-header sticky top-0 z-20">
       {table.getHeaderGroups().map((headerGroup) => (
-        <tr key={headerGroup.id} className="border-b-2 border-grid-border">
-          {/* Select all checkbox */}
-          {showSelectionColumn && (
-            <th className="w-10 border-r border-grid-border bg-grid-header-bg px-2 py-2 text-center">
-              <input
-                type="checkbox"
-                className="h-3.5 w-3.5 rounded border-gray-300 text-grid-accent focus:ring-grid-accent"
-                checked={table.getIsAllRowsSelected()}
-                ref={(input) => {
-                  if (input) {
-                    input.indeterminate = table.getIsSomeRowsSelected();
-                  }
-                }}
-                onChange={table.getToggleAllRowsSelectedHandler()}
+        <tr key={headerGroup.id}>
+          {headerGroup.headers.map((header) => {
+            if (header.column.id === SELECT_COLUMN_ID) {
+              return (
+                <th
+                  key={header.id}
+                  className="jt-header-cell jt-cell-pinned sticky left-0 z-10 !p-0 text-center"
+                  style={{ width: header.getSize() }}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-[15px] w-[15px] rounded accent-[var(--jt-grid-accent)] align-middle cursor-pointer"
+                    checked={table.getIsAllRowsSelected()}
+                    ref={(input) => {
+                      if (input) {
+                        input.indeterminate = table.getIsSomeRowsSelected();
+                      }
+                    }}
+                    onChange={table.getToggleAllRowsSelectedHandler()}
+                  />
+                </th>
+              );
+            }
+            return (
+              <HeaderCell
+                key={header.id}
+                header={header}
+                alignment={columnAlignment?.[header.column.id]}
+                isDragTarget={dropColumnId === header.column.id && dragColumnId !== null && dragColumnId !== header.column.id}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
               />
-            </th>
-          )}
-
-          {headerGroup.headers.map((header) => (
-            <HeaderCell
-              key={header.id}
-              header={header}
-              alignment={columnAlignment?.[header.column.id]}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragEnd={handleDragEnd}
-            />
-          ))}
+            );
+          })}
         </tr>
       ))}
     </thead>

@@ -7,6 +7,30 @@ export type FilterType = 'text' | 'number' | 'date' | 'set' | boolean;
 export type EditorType = 'text' | 'number' | 'date' | 'select' | 'checkbox' | 'largeText';
 export type PinDirection = 'left' | 'right' | false;
 
+/** Airtable-style field type — drives header icon, default formatter/filter/alignment and built-in renderer */
+export type ColumnDataType =
+  | 'text'
+  | 'number'
+  | 'currency'
+  | 'percent'
+  | 'date'
+  | 'select'
+  | 'multiSelect'
+  | 'checkbox'
+  | 'rating'
+  | 'progress'
+  | 'link'
+  | 'user';
+
+export type SparklineType = 'line' | 'bar' | 'winloss';
+
+/** Declarative conditional cell coloring */
+export interface CellColorRule<TData = any> {
+  when: (value: any, data: TData) => boolean;
+  /** CSS color or accent palette name (adapts to dark looks) */
+  color: string;
+}
+
 export interface ColumnDef<TData = any> {
   /** Unique column identifier. Defaults to `field` if not provided */
   colId?: string;
@@ -16,6 +40,14 @@ export interface ColumnDef<TData = any> {
   headerName?: string;
   /** Tooltip shown on header hover */
   headerTooltip?: string;
+  /** Field type — drives header icon, default formatter/filter/alignment and built-in renderer */
+  dataType?: ColumnDataType;
+  /** Render array values as an inline SVG sparkline */
+  sparkline?: SparklineType;
+  /** Render a subtle accent bar behind numeric values (proportional to column max) */
+  dataBar?: boolean;
+  /** Declarative conditional cell coloring rules (first match wins) */
+  cellColorRules?: CellColorRule<TData>[];
 
   // ─── Value Processing ───
   /** Custom value accessor */
@@ -377,6 +409,10 @@ export interface ScheduleExportParams extends EmailExportParams {
 // ─── Persisted State ─────────────────────────────────────────────────
 
 export interface PersistedGridState {
+  /** Schema version (2 = current; absent = legacy v1, accepted and upgraded on next save) */
+  version?: number;
+  /** Persisted density */
+  density?: GridDensity;
   columnOrder: string[];
   columnSizing: Record<string, number>;
   columnVisibility: Record<string, boolean>;
@@ -400,6 +436,10 @@ export interface ToolbarConfig {
   export?: ExportToolbarConfig | boolean;
   density?: boolean;
   fullscreen?: boolean;
+  /** Show the Grid | Charts view toggle */
+  charts?: boolean;
+  /** Show the look/accent theme switcher */
+  themeSwitcher?: boolean;
 }
 
 export interface ExportToolbarConfig {
@@ -414,15 +454,18 @@ export interface ExportToolbarConfig {
 
 export type GridTheme = 'light' | 'dark' | GridThemeTokens;
 
+/** Any --jt-grid-* CSS custom property. Well-known tokens listed for discoverability. */
 export interface GridThemeTokens {
   '--jt-grid-bg'?: string;
   '--jt-grid-bg-alt'?: string;
   '--jt-grid-border'?: string;
+  '--jt-grid-border-strong'?: string;
   '--jt-grid-header-bg'?: string;
   '--jt-grid-header-text'?: string;
   '--jt-grid-text'?: string;
   '--jt-grid-text-secondary'?: string;
   '--jt-grid-accent'?: string;
+  '--jt-grid-accent-hover'?: string;
   '--jt-grid-accent-light'?: string;
   '--jt-grid-row-hover'?: string;
   '--jt-grid-row-selected'?: string;
@@ -430,7 +473,49 @@ export interface GridThemeTokens {
   '--jt-grid-font-sm'?: string;
   '--jt-grid-font-base'?: string;
   '--jt-grid-font-lg'?: string;
+  [token: `--jt-grid-${string}`]: string | undefined;
 }
+
+/** Named grid-look preset — border treatment, header style, spacing, radii */
+export type GridLook = 'airtable' | 'quartz' | 'minimal' | 'striped' | 'dense' | 'midnight';
+
+/** Named accent color theme — composes with any look */
+export type AccentTheme = 'blue' | 'violet' | 'teal' | 'green' | 'amber' | 'rose' | 'slate' | 'orange';
+
+export interface GridAppearance {
+  look: GridLook;
+  accent: AccentTheme;
+}
+
+// ─── Conditional Row Coloring ────────────────────────────────────────
+
+export interface RowColorRule<TData = any> {
+  when: (data: TData) => boolean;
+  /** CSS color string */
+  color: string;
+  /** 'row' tints the whole row; 'leftBar' draws an Airtable-style 3px edge strip */
+  target?: 'row' | 'leftBar';
+}
+
+// ─── Charts ──────────────────────────────────────────────────────────
+
+export type ChartType = 'bar' | 'stackedBar' | 'line' | 'area' | 'donut';
+export type ChartAggregation = 'count' | 'sum' | 'avg' | 'min' | 'max';
+
+export interface ChartConfig {
+  id: string;
+  title?: string;
+  type: ChartType;
+  /** Column whose values form the category axis / slices */
+  categoryColId: string;
+  /** Numeric value columns (ignored for count aggregation) */
+  seriesColIds: string[];
+  aggregation: ChartAggregation;
+  /** Max categories before collapsing into "Other" (default 12) */
+  topN?: number;
+}
+
+export type GridView = 'grid' | 'charts';
 
 // ─── Column Meta (passed via TanStack column.columnDef.meta) ────────
 
@@ -455,6 +540,16 @@ export interface ColumnMeta<TData = any> {
   headerTooltip?: string;
   /** Auto-detected numeric column (no custom valueFormatter) — formatted by grid */
   autoNumeric?: boolean;
+  /** Airtable-style field type (normalized) */
+  dataType?: ColumnDataType;
+  /** Inline sparkline rendering for array values */
+  sparkline?: SparklineType;
+  /** Accent data-bar behind numeric values */
+  dataBar?: boolean;
+  /** Conditional cell coloring rules */
+  cellColorRules?: CellColorRule<TData>[];
+  /** Internal: row-number/selection display column */
+  isSelectColumn?: boolean;
 }
 
 // ─── Density ─────────────────────────────────────────────────────────
@@ -508,9 +603,31 @@ export interface DataGridProps<TData = any> {
   // ─── Toolbar ───
   toolbar?: ToolbarConfig | boolean;
 
-  // ─── Theme ───
+  // ─── Theme / Appearance ───
   theme?: GridTheme;
+  /** Grid-look preset (default 'airtable'; theme='dark' maps to 'midnight') */
+  gridLook?: GridLook;
+  /** Accent color theme (default 'blue') */
+  accentTheme?: AccentTheme;
+  /** Show the toolbar theme switcher (default true when toolbar enabled) */
+  showThemeSwitcher?: boolean;
+  /** Fired when the user changes look/accent via the switcher */
+  onAppearanceChange?: (appearance: GridAppearance) => void;
   className?: string;
+
+  // ─── Charts ───
+  /** Enable the Grid | Charts view toggle (default true when toolbar enabled) */
+  charts?: boolean;
+  /** Initial chart configurations */
+  defaultCharts?: ChartConfig[];
+
+  // ─── Conditional coloring ───
+  /** Declarative row coloring rules (first match wins) */
+  rowColorRules?: RowColorRule<TData>[];
+
+  // ─── Record panel ───
+  /** Show hover expand icon on rows opening a record detail slide-over (default true) */
+  recordPanel?: boolean;
 
   // ─── Sizing ───
   /** Default row height in px */

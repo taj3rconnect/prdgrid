@@ -11,18 +11,21 @@ export function StatusBar<TData>({ table }: StatusBarProps<TData>) {
   const hasFilters = totalRows !== filteredRows;
 
   return (
-    <div className="jt-status-bar flex items-center gap-4 border-t border-grid-border bg-gray-50 px-3 py-1.5 text-grid-sm text-grid-text-secondary">
+    <div
+      className="jt-status-bar flex items-center gap-4 px-3 py-1.5 text-grid-sm text-grid-text-secondary tabular-nums"
+      style={{ backgroundColor: 'var(--jt-grid-header-bg)', borderTop: '1px solid var(--jt-grid-border)' }}
+    >
       <span>
-        Total: <strong className="text-grid-text">{totalRows}</strong>
+        Total: <strong className="text-grid-text">{totalRows.toLocaleString()}</strong>
       </span>
       {hasFilters && (
         <span>
-          Showing: <strong className="text-grid-text">{filteredRows}</strong>
+          Showing: <strong className="text-grid-text">{filteredRows.toLocaleString()}</strong>
         </span>
       )}
       {selectedRows > 0 && (
         <span>
-          Selected: <strong className="text-grid-accent">{selectedRows}</strong>
+          Selected: <strong className="text-grid-accent">{selectedRows.toLocaleString()}</strong>
         </span>
       )}
     </div>

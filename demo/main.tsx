@@ -714,10 +714,98 @@ function APIDemo() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// DEMO 9: AIRTABLE-STYLE TYPED GRID
+// ═══════════════════════════════════════════════════════════════════════
+
+function AirtableDemo() {
+  const [data] = useState(() => generateCandidates(150));
+
+  const cols: ColumnDef<Candidate>[] = [
+    { field: 'name', headerName: 'Candidate', dataType: 'text', width: 170, pinned: 'left',
+      cellStyle: () => ({ fontWeight: 600 }) },
+    { field: 'recruiter', headerName: 'Recruiter', dataType: 'user', width: 160 },
+    { field: 'stage', headerName: 'Stage', dataType: 'select', width: 130 },
+    { field: 'priority', headerName: 'Priority', dataType: 'select', width: 110 },
+    { field: 'skills', headerName: 'Skills', dataType: 'multiSelect', width: 260 },
+    { field: 'role', headerName: 'Role', dataType: 'select', width: 190 },
+    { field: 'client', headerName: 'Client', dataType: 'select', width: 150 },
+    { field: 'salary', headerName: 'Salary', dataType: 'currency', width: 130 },
+    { field: 'margin', headerName: 'Margin', dataType: 'percent', width: 110, dataBar: true },
+    { colId: 'rating', headerName: 'Rating', dataType: 'rating', width: 130,
+      valueGetter: ({ data: d }) => Math.min(5, Math.max(1, Math.round((d as Candidate).yearsExp / 4))) },
+    { colId: 'placed', headerName: 'Placed', dataType: 'checkbox', width: 90,
+      valueGetter: ({ data: d }) => (d as Candidate).stage === 'Placed' },
+    { field: 'email', headerName: 'Email', dataType: 'link', width: 210,
+      valueFormatter: ({ value }) => String(value ?? '') },
+    { field: 'submitDate', headerName: 'Submitted', dataType: 'date', width: 120 },
+  ];
+
+  return (
+    <Section title="Airtable-Style Grid"
+      subtitle="Typed columns with field icons, colored chips, ratings, progress bars, avatars, conditional row coloring, and record expand — hover a row number and click the expand icon"
+      tags={['Field Types', 'Chips', 'Ratings', 'Data Bars', 'Avatars', 'Row Color Rules', 'Record Expand', 'Theme Switcher']}>
+      <DataGrid<Candidate>
+        gridId="airtable-demo" rowData={data} columnDefs={cols}
+        defaultColDef={{ sortable: true, resizable: true, minWidth: 60 }}
+        getRowId={d => String(d.id)} rowSelection="multiple"
+        pagination paginationPageSize={50} floatingFilters statusBar height={640}
+        persistSettings
+        rowColorRules={[
+          { when: (d) => d.stage === 'Rejected', color: 'color-mix(in srgb, var(--jt-grid-error) 7%, transparent)', target: 'row' },
+          { when: (d) => d.priority === 'Hot', color: 'var(--jt-grid-warning)', target: 'leftBar' },
+          { when: (d) => d.stage === 'Placed', color: 'var(--jt-grid-success)', target: 'leftBar' },
+        ]}
+      />
+    </Section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DEMO 10: CHARTS VIEW
+// ═══════════════════════════════════════════════════════════════════════
+
+function ChartsDemo() {
+  const [data] = useState(() => generateCandidates(300));
+
+  const cols: ColumnDef<Candidate>[] = [
+    { field: 'name', headerName: 'Candidate', dataType: 'text', width: 170 },
+    { field: 'stage', headerName: 'Stage', dataType: 'select', width: 130 },
+    { field: 'client', headerName: 'Client', dataType: 'select', width: 150 },
+    { field: 'role', headerName: 'Role', dataType: 'select', width: 190 },
+    { field: 'recruiter', headerName: 'Recruiter', dataType: 'user', width: 160 },
+    { field: 'salary', headerName: 'Salary', dataType: 'currency', width: 130 },
+    { field: 'billRate', headerName: 'Bill Rate', dataType: 'currency', width: 110 },
+    { field: 'margin', headerName: 'Margin', dataType: 'percent', width: 110, dataBar: true },
+    { field: 'yearsExp', headerName: 'Yrs Exp', dataType: 'number', width: 90 },
+  ];
+
+  return (
+    <Section title="Charts View"
+      subtitle="Toggle Grid | Charts in the toolbar. Charts aggregate the currently filtered rows live — type in the search box and watch them update. Add your own with '+ Add chart'."
+      tags={['Grid ↔ Charts Toggle', 'Bar / Line / Area / Donut', 'Live Filter-Driven', 'PNG Download', 'SVG — No Dependencies']}>
+      <DataGrid<Candidate>
+        gridId="charts-demo" rowData={data} columnDefs={cols}
+        defaultColDef={{ sortable: true, resizable: true, minWidth: 60 }}
+        getRowId={d => String(d.id)} rowSelection="multiple"
+        pagination paginationPageSize={50} floatingFilters statusBar height={640}
+        defaultCharts={[
+          { id: 'by-stage', type: 'bar', categoryColId: 'stage', seriesColIds: [], aggregation: 'count' },
+          { id: 'salary-by-role', type: 'bar', categoryColId: 'role', seriesColIds: ['salary'], aggregation: 'avg' },
+          { id: 'by-client', type: 'donut', categoryColId: 'client', seriesColIds: [], aggregation: 'count' },
+          { id: 'margin-by-recruiter', type: 'line', categoryColId: 'recruiter', seriesColIds: ['margin'], aggregation: 'avg' },
+        ]}
+      />
+    </Section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // APP — TABBED NAVIGATION
 // ═══════════════════════════════════════════════════════════════════════
 
 const navItems = [
+  { id: 'airtable', label: 'Airtable', icon: '🗂️', component: AirtableDemo },
+  { id: 'charts', label: 'Charts', icon: '📊', component: ChartsDemo },
   { id: 'hr', label: 'HR Directory', icon: '👥', component: HRDemo },
   { id: 'finance', label: 'Finance', icon: '📈', component: FinanceDemo },
   { id: 'performance', label: 'Performance', icon: '🏆', component: PerformanceDemo },
@@ -729,8 +817,8 @@ const navItems = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState('hr');
-  const ActiveDemo = navItems.find(n => n.id === activeTab)?.component || HRDemo;
+  const [activeTab, setActiveTab] = useState('airtable');
+  const ActiveDemo = navItems.find(n => n.id === activeTab)?.component || AirtableDemo;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -764,7 +852,7 @@ function App() {
         </div>
       </nav>
 
-      <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 text-white py-6 px-6">
+      <div className="text-white py-6 px-6" style={{ background: 'linear-gradient(135deg, #2563eb, #4f46e5, #6d28d9)' }}>
         <div className="mx-auto max-w-[1440px] flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black tracking-tight">Enterprise React Data Grid</h1>

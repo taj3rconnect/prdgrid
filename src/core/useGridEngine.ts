@@ -24,9 +24,13 @@ import { entriesToSorting, sortingToEntries, filtersToRecord, recordToFilters } 
 import type {
   DataGridProps,
   ColumnDef,
+  ColumnDataType,
+  FilterType,
   PersistedGridState,
   GridDensity,
 } from '../types';
+
+export const SELECT_COLUMN_ID = '__select__';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -49,6 +53,35 @@ function isAmountField(field?: string, headerName?: string): boolean {
   return false;
 }
 
+const NUMERIC_DATA_TYPES: ColumnDataType[] = ['number', 'currency', 'percent', 'progress', 'rating'];
+
+export function isNumericDataType(dataType?: ColumnDataType): boolean {
+  return dataType != null && NUMERIC_DATA_TYPES.includes(dataType);
+}
+
+/** Default filter type inferred from a column's dataType (explicit `filter` always wins) */
+function defaultFilterForDataType(dataType?: ColumnDataType): FilterType | undefined {
+  switch (dataType) {
+    case 'number':
+    case 'currency':
+    case 'percent':
+    case 'progress':
+    case 'rating':
+      return 'number';
+    case 'date':
+      return 'date';
+    case 'select':
+    case 'multiSelect':
+    case 'user':
+      return 'set';
+    case 'text':
+    case 'link':
+      return 'text';
+    default:
+      return undefined;
+  }
+}
+
 
 // ─── Column Mapping ──────────────────────────────────────────────────
 
@@ -59,6 +92,7 @@ function mapColumnDef<TData>(
 ): TanStackColumnDef<TData, any> {
   const merged = { ...defaultColDef, ...col };
   const id = col.colId || col.field || `col_${++columnCounter}`;
+  const effectiveFilter = merged.filter !== undefined ? merged.filter : defaultFilterForDataType(merged.dataType);
 
   const tanstackCol: TanStackColumnDef<TData, any> = {
     id,
@@ -70,7 +104,7 @@ function mapColumnDef<TData>(
         ? (row: TData) => getNestedValue(row, merged.field!)
         : undefined,
     enableSorting: merged.sortable !== false,
-    enableColumnFilter: merged.filter !== false && merged.filter !== undefined,
+    enableColumnFilter: effectiveFilter !== false && effectiveFilter !== undefined,
     enableGrouping: merged.enableRowGroup === true || gridEnableRowGroup === true,
     enableResizing: merged.resizable !== false,
     enableHiding: merged.lockVisible !== true,
@@ -80,7 +114,11 @@ function mapColumnDef<TData>(
     meta: {
       colDef: col,
       mergedColDef: merged,
-      filterType: merged.filter,
+      filterType: effectiveFilter,
+      dataType: merged.dataType,
+      sparkline: merged.sparkline,
+      dataBar: merged.dataBar,
+      cellColorRules: merged.cellColorRules,
       editorType: merged.cellEditor,
       editable: merged.editable,
       pinned: merged.pinned,
@@ -90,7 +128,11 @@ function mapColumnDef<TData>(
       cellClass: merged.cellClass,
       cellStyle: merged.cellStyle,
       valueFormatter: merged.valueFormatter || undefined,
-      autoNumeric: !merged.valueFormatter && (merged.filter === 'number' || isAmountField(merged.field, merged.headerName)),
+      autoNumeric:
+        !merged.valueFormatter &&
+        (effectiveFilter === 'number' ||
+          isNumericDataType(merged.dataType) ||
+          isAmountField(merged.field, merged.headerName)),
       valueParser: merged.valueParser,
       valueSetter: merged.valueSetter,
       cellValidator: merged.cellValidator,
@@ -135,12 +177,25 @@ function mapColumnDef<TData>(
   return tanstackCol;
 }
 
-// ─── Persistence ─────────────────────────────────────────────────────
+// ─── Persistence (versioned schema; v1 = legacy unversioned, upgraded on save) ──
+
+const PERSIST_VERSION = 2;
+
+export function validatePersistedState(raw: unknown): Partial<PersistedGridState> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const state = raw as Partial<PersistedGridState>;
+  // Reject states written by a future schema we don't understand
+  if (state.version != null && (typeof state.version !== 'number' || state.version > PERSIST_VERSION)) return null;
+  if (state.columnOrder != null && !Array.isArray(state.columnOrder)) return null;
+  if (state.sorting != null && !Array.isArray(state.sorting)) return null;
+  if (state.grouping != null && !Array.isArray(state.grouping)) return null;
+  return state;
+}
 
 function loadPersistedState(gridId: string): Partial<PersistedGridState> | null {
   try {
     const raw = localStorage.getItem(`jt-grid-${gridId}`);
-    if (raw) return JSON.parse(raw);
+    if (raw) return validatePersistedState(JSON.parse(raw));
   } catch {
     // Ignore corrupted state
   }
@@ -228,7 +283,13 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
   const [rowSelectionState, setRowSelectionState] = useState<RowSelectionState>({});
 
   const [columnPinning, setColumnPinning] = useState<ColumnPinningState>(() => {
-    if (persisted?.columnPinning) return persisted.columnPinning;
+    const withSelect = (pinning: { left: string[]; right: string[] }) => {
+      if (rowSelection !== false && !pinning.left.includes(SELECT_COLUMN_ID)) {
+        return { ...pinning, left: [SELECT_COLUMN_ID, ...pinning.left] };
+      }
+      return pinning;
+    };
+    if (persisted?.columnPinning) return withSelect(persisted.columnPinning);
     const left: string[] = [];
     const right: string[] = [];
     columnDefs.forEach((c) => {
@@ -236,17 +297,22 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
       if (id && c.pinned === 'left') left.push(id);
       if (id && c.pinned === 'right') right.push(id);
     });
-    return { left, right };
+    return withSelect({ left, right });
   });
 
-  const [density, setDensity] = useState<GridDensity>(propDensity);
+  const [density, setDensity] = useState<GridDensity>(persisted?.density || propDensity);
   const defaultAlignment = useMemo(() => {
     const align: Record<string, 'left' | 'center' | 'right'> = {};
     const applyDefaults = (cols: ColumnDef<TData>[]) => {
       for (const col of cols) {
         const merged = { ...defaultColDef, ...col };
         const id = col.colId || col.field;
-        if (id && (merged.filter === 'number' || isAmountField(merged.field, merged.headerName))) {
+        if (
+          id &&
+          (merged.filter === 'number' ||
+            isNumericDataType(merged.dataType) ||
+            isAmountField(merged.field, merged.headerName))
+        ) {
           align[id] = 'right';
         }
         if (col.children) applyDefaults(col.children);
@@ -269,10 +335,36 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
   const pageSize = persisted?.pageSize || paginationPageSize;
 
   // ─── Map columns ───
-  const tanstackColumns = useMemo(
-    () => columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup)),
-    [columnDefs, defaultColDef]
-  );
+  const showSelectColumn = rowSelection !== false;
+  const tanstackColumns = useMemo(() => {
+    const cols = columnDefs.map((c) => mapColumnDef(c, defaultColDef, gridEnableRowGroup));
+    if (showSelectColumn) {
+      const selectCol: TanStackColumnDef<TData, any> = {
+        id: SELECT_COLUMN_ID,
+        header: '',
+        size: 44,
+        minSize: 44,
+        maxSize: 44,
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableGrouping: false,
+        enableResizing: false,
+        enableHiding: false,
+        meta: { isSelectColumn: true } as any,
+      };
+      cols.unshift(selectCol);
+    }
+    return cols;
+  }, [columnDefs, defaultColDef, gridEnableRowGroup, showSelectColumn]);
+
+  // Dev aid: generated column IDs orphan persisted settings across remounts
+  useEffect(() => {
+    if (persistSettings && columnDefs.some((c) => !c.colId && !c.field)) {
+      console.warn(
+        '[prdgrid] persistSettings is on but some columns have neither colId nor field — their generated IDs are unstable and persisted settings for them will be lost. Add explicit colId.'
+      );
+    }
+  }, [persistSettings, columnDefs]);
 
   // ─── Table instance ───
   const table = useReactTable<TData>({
@@ -322,30 +414,35 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     },
   });
 
-  // ─── Persist state on changes ───
+  // ─── Persist state on changes (debounced — resize/sort emit rapid updates) ───
   useEffect(() => {
     if (!persistSettings || !gridId) return;
 
-    const state: PersistedGridState = {
-      columnOrder,
-      columnSizing,
-      columnVisibility,
-      sorting: sortingToEntries(sorting),
-      columnFilters: filtersToRecord(columnFilters),
-      grouping,
-      expanded: typeof expanded === 'boolean' ? {} : expanded,
-      pageSize: table.getState().pagination.pageSize,
-      columnPinning: {
-        left: columnPinning.left || [],
-        right: columnPinning.right || [],
-      },
-      columnDecimals,
-      columnAlignment: userAlignment,
-    };
+    const timer = setTimeout(() => {
+      const state: PersistedGridState = {
+        version: PERSIST_VERSION,
+        density,
+        columnOrder,
+        columnSizing,
+        columnVisibility,
+        sorting: sortingToEntries(sorting),
+        columnFilters: filtersToRecord(columnFilters),
+        grouping,
+        expanded: typeof expanded === 'boolean' ? {} : expanded,
+        pageSize: table.getState().pagination.pageSize,
+        columnPinning: {
+          left: columnPinning.left || [],
+          right: columnPinning.right || [],
+        },
+        columnDecimals,
+        columnAlignment: userAlignment,
+      };
+      savePersistedState(gridId, state);
+    }, 300);
 
-    savePersistedState(gridId, state);
+    return () => clearTimeout(timer);
   }, [
-    persistSettings, gridId, columnOrder, columnSizing, columnVisibility,
+    persistSettings, gridId, columnOrder, columnSizing, columnVisibility, density,
     sorting, columnFilters, grouping, expanded, columnPinning, columnDecimals, userAlignment,
   ]);
 
@@ -363,10 +460,10 @@ export function useGridEngine<TData>(props: DataGridProps<TData>) {
     setGrouping([]);
     setExpanded({});
     setRowSelectionState({});
-    setColumnPinning({ left: [], right: [] });
+    setColumnPinning({ left: rowSelection !== false ? [SELECT_COLUMN_ID] : [], right: [] });
     setColumnDecimals({});
     setUserAlignment({});
-  }, [gridId]);
+  }, [gridId, rowSelection]);
 
   return {
     table,

@@ -12,6 +12,17 @@ export type {
   GridTheme,
   GridThemeTokens,
   GridDensity,
+  GridLook,
+  AccentTheme,
+  GridAppearance,
+  GridView,
+  ColumnDataType,
+  SparklineType,
+  RowColorRule,
+  CellColorRule,
+  ChartType,
+  ChartAggregation,
+  ChartConfig,
 
   // Filter types
   FilterType,
@@ -61,6 +72,13 @@ export type {
   EmailExportParams,
   ScheduleExportParams,
 } from './types';
+
+// ─── Theming ───
+export { LOOK_PRESETS, LOOKS, ACCENTS, resolveAppearance } from './styles/themes';
+
+// ─── Charts & renderers (for programmatic use) ───
+export { buildChartData, aggregate } from './charts/aggregate';
+export { Sparkline, Chip, FieldTypeIcon } from './components/renderers';
 
 // ─── Export utilities (for programmatic use) ───
 export { exportToCsv } from './export/csvExport';

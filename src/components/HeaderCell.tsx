@@ -1,6 +1,8 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { flexRender, Header } from '@tanstack/react-table';
 import { clsx } from 'clsx';
+import { FieldTypeIcon } from './renderers';
+import type { ColumnMeta } from '../types';
 
 interface HeaderCellProps<TData> {
   header: Header<TData, unknown>;
@@ -8,6 +10,7 @@ interface HeaderCellProps<TData> {
   onDragStart?: (columnId: string) => void;
   onDragOver?: (columnId: string) => void;
   onDragEnd?: () => void;
+  isDragTarget?: boolean;
 }
 
 export function HeaderCell<TData>({
@@ -16,10 +19,10 @@ export function HeaderCell<TData>({
   onDragStart,
   onDragOver,
   onDragEnd,
+  isDragTarget,
 }: HeaderCellProps<TData>) {
-  const resizeRef = useRef<HTMLDivElement>(null);
   const column = header.column;
-  const meta = column.columnDef.meta as any;
+  const meta = column.columnDef.meta as ColumnMeta<TData> | undefined;
   const canSort = column.getCanSort();
   const sorted = column.getIsSorted();
   const canGroup = column.getCanGroup();
@@ -34,36 +37,30 @@ export function HeaderCell<TData>({
     [canSort, column]
   );
 
-  const sortIcon = sorted
-    ? sorted === 'asc'
-      ? '\u25B2'
-      : '\u25BC'
-    : '';
-
   const sortIndex = column.getSortIndex();
+
+  const pinStyle: React.CSSProperties = {};
+  if (isPinned === 'left') pinStyle.left = column.getStart('left');
+  if (isPinned === 'right') pinStyle.right = column.getAfter('right');
 
   return (
     <th
       className={clsx(
-        'jt-header-cell',
-        'relative select-none border-r border-grid-border bg-grid-header-bg px-3 py-2 text-left text-grid-sm font-semibold text-grid-header-text',
-        canSort && 'cursor-pointer hover:bg-grid-accent-light',
-        isPinned && 'sticky z-10',
-        isPinned === 'left' && 'left-0',
-        isPinned === 'right' && 'right-0',
-        isGrouped && 'bg-grid-accent-light'
+        'jt-header-cell group',
+        'relative select-none text-left',
+        canSort && 'cursor-pointer',
+        isPinned && 'sticky z-10 jt-cell-pinned',
+        isPinned === 'left' && column.getIsLastColumn('left') && 'jt-cell-pinned-edge-left',
+        isPinned === 'right' && column.getIsFirstColumn('right') && 'jt-cell-pinned-edge-right',
+        isGrouped && '!bg-grid-accent-light'
       )}
       style={{
         width: header.getSize(),
         minWidth: column.columnDef.minSize,
         maxWidth: column.columnDef.maxSize,
-        textAlign: alignment || (() => {
-          if (meta?.cellStyle && typeof meta.cellStyle === 'function') {
-            const s = meta.cellStyle({});
-            return s?.textAlign;
-          }
-          return meta?.cellStyle?.textAlign;
-        })(),
+        textAlign: alignment,
+        boxShadow: isDragTarget ? 'inset 2px 0 0 var(--jt-grid-accent)' : undefined,
+        ...pinStyle,
       }}
       title={meta?.headerTooltip}
       draggable={!meta?.colDef?.suppressMovable}
@@ -80,64 +77,73 @@ export function HeaderCell<TData>({
         onDragEnd?.();
       }}
     >
-      <div className={clsx(
-        'flex items-center gap-1',
-        alignment === 'right' && 'justify-end',
-        alignment === 'center' && 'justify-center',
-      )} onClick={handleSort}>
-        {/* Group indicator */}
+      <div
+        className={clsx(
+          'flex h-full items-center gap-1.5',
+          alignment === 'right' && 'justify-end',
+          alignment === 'center' && 'justify-center'
+        )}
+        onClick={handleSort}
+      >
+        {/* Field-type icon */}
+        <FieldTypeIcon dataType={meta?.dataType} />
+
+        {/* Header text */}
+        <span className="min-w-0 truncate">
+          {header.isPlaceholder ? null : flexRender(column.columnDef.header, header.getContext())}
+        </span>
+
+        {/* Sort indicator */}
+        {sorted && (
+          <span className="flex shrink-0 items-center" style={{ color: 'var(--jt-grid-accent)' }}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              {sorted === 'asc' ? <path d="M4 10l4-4 4 4" /> : <path d="M4 6l4 4 4-4" />}
+            </svg>
+            {sortIndex !== undefined && sortIndex > 0 && (
+              <sup className="ml-0.5 text-[8px] font-semibold">{sortIndex + 1}</sup>
+            )}
+          </span>
+        )}
+
+        <span className="flex-1" />
+
+        {/* Group toggle — appears on hover (or stays when grouped) */}
         {canGroup && (
           <button
             className={clsx(
-              'mr-1 flex h-4 w-4 items-center justify-center rounded text-[10px] leading-none',
+              'flex h-4 w-4 shrink-0 items-center justify-center rounded transition-opacity duration-100',
               isGrouped
-                ? 'bg-grid-accent text-white'
-                : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                ? 'opacity-100 text-white'
+                : 'opacity-0 group-hover:opacity-100 text-grid-header-icon hover:text-grid-accent'
             )}
+            style={isGrouped ? { backgroundColor: 'var(--jt-grid-accent)' } : undefined}
             onClick={(e) => {
               e.stopPropagation();
               column.toggleGrouping();
             }}
             title={isGrouped ? 'Ungroup' : 'Group by this column'}
           >
-            G
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+              <path d="M2 4h12M4.5 8h7M7 12h2" />
+            </svg>
           </button>
-        )}
-
-        {/* Header text */}
-        <span className="flex-1 truncate">
-          {header.isPlaceholder
-            ? null
-            : flexRender(column.columnDef.header, header.getContext())}
-        </span>
-
-        {/* Sort indicator */}
-        {sortIcon && (
-          <span className="ml-1 text-grid-accent text-[10px]">
-            {sortIcon}
-            {sortIndex !== undefined && sortIndex > 0 && (
-              <sup className="text-[8px] ml-0.5">{sortIndex + 1}</sup>
-            )}
-          </span>
         )}
       </div>
 
-      {/* Resize handle */}
+      {/* Resize handle — 2px accent line on hover */}
       {column.getCanResize() && (
         <div
-          ref={resizeRef}
           className={clsx(
-            'absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none',
+            'absolute -right-[2px] top-0 z-10 h-full w-[5px] cursor-col-resize select-none touch-none',
+            'after:absolute after:right-[1.5px] after:top-0 after:h-full after:w-[2px] after:transition-opacity after:duration-100',
             header.column.getIsResizing()
-              ? 'bg-grid-accent opacity-100'
-              : 'hover:bg-grid-accent opacity-0 hover:opacity-50'
+              ? 'after:bg-grid-accent after:opacity-100'
+              : 'after:bg-grid-accent after:opacity-0 hover:after:opacity-100'
           )}
           onMouseDown={header.getResizeHandler()}
           onTouchStart={header.getResizeHandler()}
-          onDoubleClick={() => {
-            // Auto-size column on double-click
-            column.resetSize();
-          }}
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={() => column.resetSize()}
         />
       )}
     </th>

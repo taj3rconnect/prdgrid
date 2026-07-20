@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Table } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 import { reorderColumn, getColumnHeader } from '../core/gridUtils';
+import { FieldTypeIcon } from './renderers';
+import type { ColumnMeta } from '../types';
 
 type Alignment = 'left' | 'center' | 'right';
 
@@ -17,10 +19,10 @@ interface ColumnManagerProps<TData> {
 
 const decimalOptions = [0, 1, 2, 3, 4];
 
-const alignOptions: { value: Alignment; icon: string; title: string }[] = [
-  { value: 'left', icon: '≡', title: 'Align left' },
-  { value: 'center', icon: '≡', title: 'Align center' },
-  { value: 'right', icon: '≡', title: 'Align right' },
+const alignOptions: { value: Alignment; title: string }[] = [
+  { value: 'left', title: 'Align left' },
+  { value: 'center', title: 'Align center' },
+  { value: 'right', title: 'Align right' },
 ];
 
 export function ColumnManager<TData>({
@@ -32,7 +34,9 @@ export function ColumnManager<TData>({
 
   if (!isOpen) return null;
 
-  const allColumns = table.getAllLeafColumns();
+  const allColumns = table.getAllLeafColumns().filter(
+    (c) => !(c.columnDef.meta as ColumnMeta | undefined)?.isSelectColumn
+  );
   const filteredColumns = searchTerm
     ? allColumns.filter((col) => {
         return getColumnHeader(col).toLowerCase().includes(searchTerm.toLowerCase());
@@ -48,48 +52,54 @@ export function ColumnManager<TData>({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-end"
+      style={{ backgroundColor: 'rgb(16 24 40 / 0.2)' }}
+      onClick={onClose}
+    >
       <div
-        className="mt-12 mr-4 w-80 max-h-[70vh] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl flex flex-col"
+        className="mr-4 mt-12 flex max-h-[70vh] w-[320px] flex-col overflow-hidden rounded-xl"
+        style={{
+          backgroundColor: 'var(--jt-grid-menu-bg)',
+          border: '1px solid var(--jt-grid-border)',
+          boxShadow: 'var(--jt-grid-menu-shadow)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-          <h3 className="text-sm font-semibold text-gray-900">Manage Columns</h3>
-          <button
-            className="text-gray-400 hover:text-gray-600"
-            onClick={onClose}
-          >
-            &times;
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--jt-grid-border)' }}>
+          <h3 className="text-grid-lg font-semibold text-grid-text">Manage Columns</h3>
+          <button className="jt-btn !px-1.5" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8" /></svg>
           </button>
         </div>
 
         {/* Search */}
-        <div className="border-b border-gray-200 px-4 py-2">
+        <div className="px-4 py-2" style={{ borderBottom: '1px solid var(--jt-grid-border)' }}>
           <input
             type="text"
             placeholder="Search columns..."
-            className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-grid-accent focus:outline-none"
+            className="jt-input h-7 w-full px-2"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         {/* Toggle all */}
-        <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-2">
+        <div className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: '1px solid var(--jt-grid-border)' }}>
           <input
             type="checkbox"
-            className="h-3.5 w-3.5 rounded border-gray-300 text-grid-accent"
+            className="h-3.5 w-3.5 rounded accent-[var(--jt-grid-accent)]"
             checked={table.getIsAllColumnsVisible()}
             onChange={table.getToggleAllColumnsVisibilityHandler()}
           />
-          <span className="text-xs font-medium text-gray-600">Toggle All</span>
+          <span className="text-grid-sm font-medium text-grid-text-secondary">Toggle All</span>
         </div>
 
         {/* Column list */}
         <div className="flex-1 overflow-y-auto px-2 py-1">
           {filteredColumns.map((column) => {
-            const meta = column.columnDef.meta as any;
+            const meta = column.columnDef.meta as ColumnMeta | undefined;
             if (meta?.colDef?.lockVisible) return null;
 
             const header = getColumnHeader(column);
@@ -99,9 +109,9 @@ export function ColumnManager<TData>({
               <div
                 key={column.id}
                 className={clsx(
-                  'flex items-center gap-2 rounded px-2 py-1.5 text-sm',
+                  'flex h-8 cursor-grab items-center gap-2 rounded-md px-2 text-grid-base transition-colors duration-100',
                   dragOverItem === column.id && 'bg-grid-accent-light',
-                  'hover:bg-gray-50 cursor-grab'
+                  dragOverItem !== column.id && 'hover:bg-grid-row-hover'
                 )}
                 draggable
                 onDragStart={() => setDragItem(column.id)}
@@ -115,28 +125,33 @@ export function ColumnManager<TData>({
                 }}
                 onDragEnd={handleDragEnd}
               >
-                {/* Drag handle */}
-                <span className="text-gray-400 text-xs cursor-grab">::</span>
+                {/* Drag grip */}
+                <svg width="10" height="12" viewBox="0 0 8 12" className="shrink-0" style={{ color: 'var(--jt-grid-header-icon)' }} fill="currentColor" aria-hidden>
+                  <circle cx="2" cy="2" r="1" /><circle cx="6" cy="2" r="1" />
+                  <circle cx="2" cy="6" r="1" /><circle cx="6" cy="6" r="1" />
+                  <circle cx="2" cy="10" r="1" /><circle cx="6" cy="10" r="1" />
+                </svg>
 
                 <input
                   type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-gray-300 text-grid-accent"
+                  className="h-3.5 w-3.5 rounded accent-[var(--jt-grid-accent)]"
                   checked={column.getIsVisible()}
                   onChange={column.getToggleVisibilityHandler()}
                 />
+                <FieldTypeIcon dataType={meta?.dataType} />
                 <span className="flex-1 truncate text-grid-text">{header}</span>
 
                 {/* Alignment controls */}
-                <div className="flex items-center border border-gray-200 rounded overflow-hidden">
+                <div className="flex items-center overflow-hidden rounded" style={{ border: '1px solid var(--jt-grid-border)' }}>
                   {alignOptions.map((opt) => (
                     <button
                       key={opt.value}
-                      className={clsx(
-                        'px-1.5 py-0.5 text-[10px] leading-none',
+                      className={clsx('px-1.5 py-0.5 leading-none transition-colors duration-100')}
+                      style={
                         currentAlign === opt.value
-                          ? 'bg-grid-accent text-white'
-                          : 'text-gray-400 hover:bg-gray-100'
-                      )}
+                          ? { backgroundColor: 'var(--jt-grid-accent)', color: 'var(--jt-grid-accent-text)' }
+                          : { color: 'var(--jt-grid-header-icon)' }
+                      }
                       onClick={() => onColumnAlignmentChange(column.id, opt.value)}
                       title={opt.title}
                     >
@@ -152,9 +167,9 @@ export function ColumnManager<TData>({
                 </div>
 
                 {/* Decimal places (numeric columns only) */}
-                {(meta as any)?.autoNumeric && (
+                {meta?.autoNumeric && (
                   <select
-                    className="h-5 w-10 rounded border border-gray-200 bg-white text-[10px] text-gray-600 focus:border-grid-accent focus:outline-none"
+                    className="jt-input h-5 w-10 text-[10px]"
                     value={columnDecimals[column.id] ?? 0}
                     onChange={(e) => onColumnDecimalsChange(column.id, Number(e.target.value))}
                     title="Decimal places"
@@ -167,29 +182,15 @@ export function ColumnManager<TData>({
 
                 {/* Pin controls */}
                 <button
-                  className={clsx(
-                    'text-xs px-1 rounded',
-                    column.getIsPinned() === 'left'
-                      ? 'text-grid-accent bg-grid-accent-light'
-                      : 'text-gray-400 hover:text-gray-600'
-                  )}
-                  onClick={() =>
-                    column.pin(column.getIsPinned() === 'left' ? false : 'left')
-                  }
+                  className={clsx('rounded px-1 text-xs', column.getIsPinned() === 'left' ? 'bg-grid-accent-light text-grid-accent' : 'text-grid-header-icon hover:text-grid-text')}
+                  onClick={() => column.pin(column.getIsPinned() === 'left' ? false : 'left')}
                   title="Pin left"
                 >
                   ◀
                 </button>
                 <button
-                  className={clsx(
-                    'text-xs px-1 rounded',
-                    column.getIsPinned() === 'right'
-                      ? 'text-grid-accent bg-grid-accent-light'
-                      : 'text-gray-400 hover:text-gray-600'
-                  )}
-                  onClick={() =>
-                    column.pin(column.getIsPinned() === 'right' ? false : 'right')
-                  }
+                  className={clsx('rounded px-1 text-xs', column.getIsPinned() === 'right' ? 'bg-grid-accent-light text-grid-accent' : 'text-grid-header-icon hover:text-grid-text')}
+                  onClick={() => column.pin(column.getIsPinned() === 'right' ? false : 'right')}
                   title="Pin right"
                 >
                   ▶

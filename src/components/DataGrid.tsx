@@ -2,12 +2,15 @@ import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, f
 import { clsx } from 'clsx';
 import { useGridEngine } from '../core/useGridEngine';
 import { sortingToEntries, entriesToSorting, filtersToRecord, recordToFilters } from '../core/gridUtils';
+import { resolveAppearance } from '../styles/themes';
 import { GridToolbar } from './GridToolbar';
 import { GridHeader } from './GridHeader';
 import { GridBody } from './GridBody';
 import { FloatingFilter } from './FloatingFilter';
 import { GroupPanel } from './GroupPanel';
 import { ColumnManager } from './ColumnManager';
+import { ChartPanel } from './ChartPanel';
+import { RecordPanel } from './RecordPanel';
 import { Pagination } from './Pagination';
 import { StatusBar } from './StatusBar';
 import { Overlay } from './Overlay';
@@ -15,8 +18,14 @@ import { exportToCsv } from '../export/csvExport';
 import type {
   DataGridProps,
   GridType,
+  GridView,
+  GridAppearance,
+  GridLook,
+  AccentTheme,
+  ChartConfig,
   ToolbarConfig,
   GridApi,
+  GridThemeTokens,
 } from '../types';
 
 // ─── Grid Type Presets ──────────────────────────────────────────────
@@ -46,7 +55,8 @@ const GRID_TYPE_DEFAULTS: Record<GridType, Partial<DataGridProps<any>>> = {
     rowSelection: false,
     floatingFilters: true,
     statusBar: true,
-    toolbar: { search: true, columnManager: true, export: { csv: true, excel: true }, density: true },
+    gridLook: 'dense',
+    toolbar: { search: true, columnManager: true, export: { csv: true, excel: true }, density: true, charts: true, themeSwitcher: true },
   },
   editable: {
     pagination: true,
@@ -54,7 +64,7 @@ const GRID_TYPE_DEFAULTS: Record<GridType, Partial<DataGridProps<any>>> = {
     rowSelection: 'single',
     floatingFilters: false,
     statusBar: true,
-    toolbar: { search: true, columnManager: true, export: { csv: true }, density: true },
+    toolbar: { search: true, columnManager: true, export: { csv: true }, density: true, charts: true, themeSwitcher: true },
   },
   highvol: {
     pagination: true,
@@ -68,32 +78,46 @@ const GRID_TYPE_DEFAULTS: Record<GridType, Partial<DataGridProps<any>>> = {
   },
 };
 
-const darkThemeVars: Record<string, string> = {
-  '--jt-grid-bg': '#1f2937',
-  '--jt-grid-bg-alt': '#263040',
-  '--jt-grid-border': '#374151',
-  '--jt-grid-header-bg': '#111827',
-  '--jt-grid-header-text': '#f3f4f6',
-  '--jt-grid-text': '#d1d5db',
-  '--jt-grid-text-secondary': '#9ca3af',
-  '--jt-grid-accent': '#60a5fa',
-  '--jt-grid-accent-light': '#1e3a5f',
-  '--jt-grid-row-hover': '#2d3748',
-  '--jt-grid-row-selected': '#1e3a5f',
-  '--jt-grid-cell-edit': '#422006',
-};
+// ─── UI-state persistence (appearance + charts), separate from grid data state ──
+interface PersistedUiState {
+  version: number;
+  look?: GridLook;
+  accent?: AccentTheme;
+  charts?: ChartConfig[];
+}
+
+function loadUiState(gridId?: string): PersistedUiState | null {
+  if (!gridId) return null;
+  try {
+    const raw = localStorage.getItem(`jt-grid-${gridId}-ui`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || (parsed.version && parsed.version > 1)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveUiState(gridId: string, state: PersistedUiState): void {
+  try {
+    localStorage.setItem(`jt-grid-${gridId}-ui`, JSON.stringify(state));
+  } catch {
+    // localStorage full or unavailable
+  }
+}
 
 function DataGridInner<TData = any>(
   props: DataGridProps<TData>,
   ref: React.Ref<GridApi<TData>>
 ) {
   // Merge gridType preset defaults with explicit props (explicit wins)
-  const { gridType = 'regular', enableRowGroup = true, ...restProps } = props;
+  const { gridType = 'regular', enableRowGroup, ...restProps } = props;
   const preset = GRID_TYPE_DEFAULTS[gridType];
   const merged = { ...preset, ...restProps };
 
-  // If enableRowGroup is set, force groupPanel on
-  if (enableRowGroup) {
+  // Only an EXPLICIT enableRowGroup forces the group panel on
+  if (enableRowGroup === true) {
     merged.groupPanel = true;
   }
 
@@ -107,7 +131,19 @@ function DataGridInner<TData = any>(
     statusBar: showStatusBar = true,
     toolbar: toolbarProp = true,
     theme = 'light',
+    gridLook: gridLookProp,
+    accentTheme: accentThemeProp,
+    showThemeSwitcher = true,
+    onAppearanceChange,
+    charts: chartsEnabled = true,
+    defaultCharts,
+    rowColorRules,
+    recordPanel = true,
     className,
+    gridId,
+    persistSettings = false,
+    rowHeight,
+    headerHeight,
     height = 600,
     loading = false,
     loadingComponent,
@@ -124,7 +160,7 @@ function DataGridInner<TData = any>(
 
   const mergedProps = useMemo<DataGridProps<TData>>(() => ({
     ...merged,
-    enableRowGroup,
+    enableRowGroup: enableRowGroup ?? true,
     rowSelection,
     pagination,
     paginationPageSizeOptions,
@@ -156,27 +192,63 @@ function DataGridInner<TData = any>(
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
+  const [view, setView] = useState<GridView>('grid');
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const mountedRef = useRef(false);
 
-  const toolbarConfig: ToolbarConfig = useMemo(() =>
-    typeof toolbarProp === 'boolean'
-      ? toolbarProp
-        ? { search: true, columnManager: true, export: { csv: true }, density: true }
-        : {}
-      : toolbarProp,
-    [toolbarProp]
+  // ─── Appearance (look + accent) ───
+  const persistedUi = useMemo(() => (persistSettings ? loadUiState(gridId) : null), [persistSettings, gridId]);
+  const defaultLook: GridLook = gridLookProp ?? (theme === 'dark' ? 'midnight' : 'airtable');
+  const [appearance, setAppearance] = useState<GridAppearance>({
+    look: persistedUi?.look ?? defaultLook,
+    accent: persistedUi?.accent ?? accentThemeProp ?? 'blue',
+  });
+
+  const [chartConfigs, setChartConfigs] = useState<ChartConfig[]>(persistedUi?.charts ?? defaultCharts ?? []);
+
+  // Persist appearance + chart configs (debounced)
+  useEffect(() => {
+    if (!persistSettings || !gridId) return;
+    const timer = setTimeout(() => {
+      saveUiState(gridId, { version: 1, look: appearance.look, accent: appearance.accent, charts: chartConfigs });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [persistSettings, gridId, appearance, chartConfigs]);
+
+  const handleAppearanceChange = useCallback(
+    (next: GridAppearance) => {
+      setAppearance(next);
+      onAppearanceChange?.(next);
+    },
+    [onAppearanceChange]
   );
 
-  const themeStyle = useMemo(() =>
-    (typeof theme === 'object'
-      ? theme
-      : theme === 'dark'
-        ? darkThemeVars
-        : {}) as React.CSSProperties,
-    [theme]
+  const themeTokens = typeof theme === 'object' ? (theme as GridThemeTokens) : undefined;
+  const { style: appearanceStyle, isDark } = useMemo(
+    () =>
+      resolveAppearance({
+        look: appearance.look,
+        accent: appearance.accent,
+        density,
+        themeTokens,
+        rowHeight,
+        headerHeight,
+      }),
+    [appearance, density, themeTokens, rowHeight, headerHeight]
   );
 
-  const showSelectionColumn = rowSelection !== false;
+  const toolbarConfig: ToolbarConfig = useMemo(() => {
+    const base: ToolbarConfig =
+      typeof toolbarProp === 'boolean'
+        ? toolbarProp
+          ? { search: true, columnManager: true, export: { csv: true }, density: true }
+          : {}
+        : { ...toolbarProp };
+    if (Object.keys(base).length === 0) return base;
+    if (base.charts === undefined) base.charts = chartsEnabled;
+    if (base.themeSwitcher === undefined) base.themeSwitcher = showThemeSwitcher;
+    return base;
+  }, [toolbarProp, chartsEnabled, showThemeSwitcher]);
 
   // ─── Grid API ───
   const gridApi = useMemo<GridApi<TData>>(() => ({
@@ -208,8 +280,8 @@ function DataGridInner<TData = any>(
     setQuickFilter: (text) => setGlobalFilter(text),
     selectAll: () => table.toggleAllRowsSelected(true),
     deselectAll: () => table.toggleAllRowsSelected(false),
-    startEditingCell: () => { /* TODO: implement in Phase 4 */ },
-    stopEditing: () => { /* TODO: implement in Phase 4 */ },
+    startEditingCell: () => { /* Deprecated stub — editing state lives in cells; see docs */ },
+    stopEditing: () => { /* Deprecated stub */ },
     exportCsv: (params) => exportToCsv(table, params),
     exportExcel: async (params) => {
       const { exportToExcel } = await import('../export/excelExport');
@@ -230,17 +302,39 @@ function DataGridInner<TData = any>(
       pageSize: table.getState().pagination.pageSize,
       columnPinning: table.getState().columnPinning as { left: string[]; right: string[] },
     }),
-    applyState: () => { /* TODO */ },
+    applyState: (state) => {
+      if (state.columnOrder) engine.setColumnOrder(state.columnOrder);
+      if (state.columnSizing) engine.setColumnSizing(state.columnSizing);
+      if (state.columnVisibility) engine.setColumnVisibility(state.columnVisibility);
+      if (state.sorting) engine.setSorting(entriesToSorting(state.sorting));
+      if (state.columnFilters) engine.setColumnFilters(recordToFilters(state.columnFilters));
+      if (state.grouping) engine.setGrouping(state.grouping);
+      if (state.expanded) engine.setExpanded(state.expanded);
+      if (state.columnPinning) engine.setColumnPinning(state.columnPinning);
+      if (state.pageSize) table.setPageSize(state.pageSize);
+    },
     resetState,
     refreshCells: () => {},
-    ensureRowVisible: () => {},
+    ensureRowVisible: (rowIndex) => {
+      containerRef.current
+        ?.querySelector(`[data-row-index="${rowIndex}"]`)
+        ?.scrollIntoView({ block: 'nearest' });
+    },
   }), [table, engine.sorting, engine.columnFilters, engine.grouping, engine.expanded, resetState, setGlobalFilter]);
 
   useImperativeHandle(ref, () => gridApi, [gridApi]);
 
+  // Stable API proxy so onGridReady consumers never hold a stale closure
+  const gridApiRef = useRef(gridApi);
+  gridApiRef.current = gridApi;
+  const stableApi = useMemo<GridApi<TData>>(
+    () => new Proxy({} as GridApi<TData>, { get: (_t, prop) => (gridApiRef.current as any)[prop] }),
+    []
+  );
+
   // Fire onGridReady
   useEffect(() => {
-    onGridReady?.({ api: gridApi });
+    onGridReady?.({ api: stableApi });
     mountedRef.current = true;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -305,18 +399,19 @@ function DataGridInner<TData = any>(
     [onCellValueChanged]
   );
 
+  const handleExpandRecord = useCallback((rowId: string) => setExpandedRowId(rowId), []);
+
   const heightStyle = typeof height === 'number' ? `${height}px` : height;
+  const anySelected = Object.keys(engine.rowSelectionState).length > 0;
 
   return (
     <div
       ref={containerRef}
-      className={clsx(
-        'jt-datagrid',
-        'flex flex-col overflow-hidden rounded-lg border border-grid-border bg-grid-bg shadow-sm',
-        theme === 'dark' && 'dark',
-        className
-      )}
-      style={{ height: heightStyle, ...themeStyle }}
+      className={clsx('jt-datagrid', 'flex flex-col overflow-hidden', isDark && 'dark', className)}
+      style={{ height: heightStyle, ...(appearanceStyle as React.CSSProperties) }}
+      data-look={appearance.look}
+      data-accent={appearance.accent}
+      data-anyselected={anySelected}
     >
       {Object.keys(toolbarConfig).length > 0 && (
         <GridToolbar
@@ -331,10 +426,14 @@ function DataGridInner<TData = any>(
           onExportCsv={() => gridApi.exportCsv()}
           onExportExcel={() => gridApi.exportExcel()}
           onExportImage={() => gridApi.exportImage()}
+          view={view}
+          onViewChange={setView}
+          appearance={appearance}
+          onAppearanceChange={handleAppearanceChange}
         />
       )}
 
-      {groupPanel && (
+      {groupPanel && view === 'grid' && (
         <GroupPanel
           table={table}
           grouping={grouping}
@@ -342,29 +441,32 @@ function DataGridInner<TData = any>(
         />
       )}
 
-      <div className="flex-1 overflow-auto">
-        <table className="jt-table w-full border-collapse text-grid-base">
-          <GridHeader table={table} showSelectionColumn={showSelectionColumn} columnAlignment={columnAlignment} />
-          {floatingFilters && (
-            <FloatingFilter table={table} showSelectionColumn={showSelectionColumn} />
-          )}
-          <GridBody
-            table={table}
-            density={density}
-            columnAlignment={columnAlignment}
-            columnDecimals={columnDecimals}
-            noRowsComponent={noRowsComponent}
-            noRowsMessage={noRowsMessage}
-            onCellClick={handleCellClick}
-            onCellDoubleClick={handleCellDoubleClick}
-            onCellValueChanged={handleCellValueChanged}
-          />
-        </table>
-      </div>
+      {view === 'charts' ? (
+        <ChartPanel table={table} charts={chartConfigs} onChartsChange={setChartConfigs} />
+      ) : (
+        <div className="flex-1 overflow-auto">
+          <table className="jt-table w-full border-collapse text-grid-base">
+            <GridHeader table={table} columnAlignment={columnAlignment} />
+            {floatingFilters && <FloatingFilter table={table} />}
+            <GridBody
+              table={table}
+              columnAlignment={columnAlignment}
+              columnDecimals={columnDecimals}
+              rowColorRules={rowColorRules}
+              noRowsComponent={noRowsComponent}
+              noRowsMessage={noRowsMessage}
+              onCellClick={handleCellClick}
+              onCellDoubleClick={handleCellDoubleClick}
+              onCellValueChanged={handleCellValueChanged}
+              onExpandRecord={recordPanel && rowSelection !== false ? handleExpandRecord : undefined}
+            />
+          </table>
+        </div>
+      )}
 
       <Overlay loading={loading} loadingComponent={loadingComponent} />
 
-      {pagination && (
+      {pagination && view === 'grid' && (
         <Pagination table={table} pageSizeOptions={paginationPageSizeOptions} />
       )}
 
@@ -382,6 +484,13 @@ function DataGridInner<TData = any>(
         onColumnDecimalsChange={(colId, decimals) =>
           setColumnDecimals(prev => ({ ...prev, [colId]: decimals }))
         }
+      />
+
+      <RecordPanel
+        table={table}
+        rowId={expandedRowId}
+        onClose={() => setExpandedRowId(null)}
+        onNavigate={setExpandedRowId}
       />
     </div>
   );

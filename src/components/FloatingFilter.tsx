@@ -4,17 +4,13 @@ import { clsx } from 'clsx';
 
 interface FloatingFilterProps<TData> {
   table: Table<TData>;
-  showSelectionColumn: boolean;
 }
 
-export function FloatingFilter<TData>({ table, showSelectionColumn }: FloatingFilterProps<TData>) {
+export function FloatingFilter<TData>({ table }: FloatingFilterProps<TData>) {
   return (
     <thead className="jt-floating-filters">
       {table.getHeaderGroups().map((headerGroup) => (
-        <tr key={`ff-${headerGroup.id}`} className="border-b border-grid-border bg-white">
-          {showSelectionColumn && (
-            <th className="w-10 border-r border-grid-border px-1 py-1" />
-          )}
+        <tr key={`ff-${headerGroup.id}`}>
           {headerGroup.headers.map((header) => (
             <FloatingFilterCell key={header.id} header={header} />
           ))}
@@ -32,15 +28,15 @@ function FloatingFilterCell<TData>({ header }: { header: Header<TData, unknown> 
   const filterValue = column.getFilterValue();
 
   if (!canFilter || header.isPlaceholder) {
-    return <th className="border-r border-grid-border px-1 py-1" style={{ width: header.getSize() }} />;
+    return <th style={{ width: header.getSize() }} />;
   }
 
   if (filterType === 'number') {
     return (
-      <th className="border-r border-grid-border px-1 py-1" style={{ width: header.getSize() }}>
+      <th style={{ width: header.getSize() }}>
         <input
           type="number"
-          className="w-full rounded border border-gray-300 px-1.5 py-0.5 text-xs focus:border-grid-accent focus:outline-none"
+          className="jt-input w-full px-1.5 py-0.5 text-xs"
           placeholder="Filter..."
           value={(filterValue as string) ?? ''}
           onChange={(e) => column.setFilterValue(e.target.value ? Number(e.target.value) : undefined)}
@@ -51,10 +47,10 @@ function FloatingFilterCell<TData>({ header }: { header: Header<TData, unknown> 
 
   if (filterType === 'date') {
     return (
-      <th className="border-r border-grid-border px-1 py-1" style={{ width: header.getSize() }}>
+      <th style={{ width: header.getSize() }}>
         <input
           type="date"
-          className="w-full rounded border border-gray-300 px-1.5 py-0.5 text-xs focus:border-grid-accent focus:outline-none"
+          className="jt-input w-full px-1.5 py-0.5 text-xs"
           value={(filterValue as string) ?? ''}
           onChange={(e) => column.setFilterValue(e.target.value || undefined)}
         />
@@ -64,7 +60,7 @@ function FloatingFilterCell<TData>({ header }: { header: Header<TData, unknown> 
 
   if (filterType === 'set') {
     return (
-      <th className="border-r border-grid-border px-1 py-1" style={{ width: header.getSize() }}>
+      <th style={{ width: header.getSize() }}>
         <SetFilterDropdown column={column} />
       </th>
     );
@@ -72,10 +68,10 @@ function FloatingFilterCell<TData>({ header }: { header: Header<TData, unknown> 
 
   // Default: text filter
   return (
-    <th className="border-r border-grid-border px-1 py-1" style={{ width: header.getSize() }}>
+    <th style={{ width: header.getSize() }}>
       <input
         type="text"
-        className="w-full rounded border border-gray-300 px-1.5 py-0.5 text-xs focus:border-grid-accent focus:outline-none"
+        className="jt-input w-full px-1.5 py-0.5 text-xs"
         placeholder="Filter..."
         value={(filterValue as string) ?? ''}
         onChange={(e) => column.setFilterValue(e.target.value || undefined)}
@@ -109,18 +105,18 @@ function SetFilterDropdown({ column }: { column: any }) {
     <div className="relative">
       <button
         className={clsx(
-          'w-full rounded border px-1.5 py-0.5 text-left text-xs',
+          'w-full rounded-md border px-1.5 py-0.5 text-left text-xs',
           filterValue.length > 0
             ? 'border-grid-accent text-grid-accent bg-grid-accent-light'
-            : 'border-gray-300 text-gray-500'
+            : 'jt-input text-grid-text-secondary'
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
         {filterValue.length > 0 ? `${filterValue.length} selected` : 'All'}
       </button>
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 max-h-48 w-48 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
-          <div className="border-b border-gray-100 px-2 py-1">
+        <div className="jt-menu absolute left-0 top-full z-50 mt-1 max-h-48 w-48 overflow-y-auto">
+          <div className="px-2 py-1" style={{ borderBottom: '1px solid var(--jt-grid-border)' }}>
             <button
               className="text-xs text-grid-accent hover:underline"
               onClick={() => column.setFilterValue(undefined)}
@@ -131,17 +127,17 @@ function SetFilterDropdown({ column }: { column: any }) {
           {uniqueValues.map((val) => (
             <label
               key={String(val)}
-              className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-gray-50 cursor-pointer"
+              className="jt-menu-item !h-6 cursor-pointer text-xs"
             >
               <input
                 type="checkbox"
-                className="h-3 w-3 rounded border-gray-300 text-grid-accent"
+                className="h-3 w-3 rounded accent-[var(--jt-grid-accent)]"
                 checked={filterValue.includes(String(val))}
                 onChange={() => toggleValue(String(val))}
               />
               <span className="truncate">{String(val)}</span>
               {facetedValues && (
-                <span className="ml-auto text-gray-400">{facetedValues.get(val)}</span>
+                <span className="ml-auto text-grid-text-secondary">{facetedValues.get(val)}</span>
               )}
             </label>
           ))}

@@ -6,22 +6,39 @@ interface PaginationProps<TData> {
   pageSizeOptions: number[];
 }
 
+function NavButton({ disabled, onClick, title, children }: { disabled: boolean; onClick: () => void; title: string; children: React.ReactNode }) {
+  return (
+    <button
+      className={clsx('flex h-[26px] min-w-[26px] items-center justify-center rounded-md px-1 text-grid-sm transition-colors duration-100', !disabled && 'text-grid-text hover:bg-grid-row-hover')}
+      style={disabled ? { color: 'var(--jt-grid-border-strong)', cursor: 'default' } : undefined}
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function Pagination<TData>({ table, pageSizeOptions }: PaginationProps<TData>) {
   const pageCount = table.getPageCount();
   const currentPage = table.getState().pagination.pageIndex;
   const pageSize = table.getState().pagination.pageSize;
   const totalRows = table.getFilteredRowModel().rows.length;
 
-  const startRow = currentPage * pageSize + 1;
+  const startRow = totalRows === 0 ? 0 : currentPage * pageSize + 1;
   const endRow = Math.min((currentPage + 1) * pageSize, totalRows);
 
   return (
-    <div className="jt-pagination flex items-center justify-between border-t border-grid-border bg-grid-bg px-3 py-2">
+    <div
+      className="jt-pagination flex h-9 items-center justify-between px-2.5"
+      style={{ backgroundColor: 'var(--jt-grid-toolbar-bg)', borderTop: '1px solid var(--jt-grid-border)' }}
+    >
       {/* Page size selector */}
       <div className="flex items-center gap-2 text-grid-sm text-grid-text-secondary">
         <span>Rows per page:</span>
         <select
-          className="rounded border border-gray-300 bg-white px-2 py-0.5 text-grid-sm text-grid-text focus:border-grid-accent focus:outline-none"
+          className="jt-input h-6 px-1.5 text-grid-sm"
           value={pageSize}
           onChange={(e) => table.setPageSize(Number(e.target.value))}
         >
@@ -34,38 +51,14 @@ export function Pagination<TData>({ table, pageSizeOptions }: PaginationProps<TD
       </div>
 
       {/* Row range */}
-      <span className="text-grid-sm text-grid-text-secondary">
-        {startRow}-{endRow} of {totalRows}
+      <span className="text-grid-sm text-grid-text-secondary tabular-nums">
+        {startRow.toLocaleString()}-{endRow.toLocaleString()} of {totalRows.toLocaleString()}
       </span>
 
       {/* Navigation */}
-      <div className="flex items-center gap-1">
-        <button
-          className={clsx(
-            'rounded px-2 py-1 text-grid-sm',
-            table.getCanPreviousPage()
-              ? 'text-grid-text hover:bg-gray-100'
-              : 'text-gray-300 cursor-not-allowed'
-          )}
-          onClick={() => table.setPageIndex(0)}
-          disabled={!table.getCanPreviousPage()}
-          title="First page"
-        >
-          &#171;
-        </button>
-        <button
-          className={clsx(
-            'rounded px-2 py-1 text-grid-sm',
-            table.getCanPreviousPage()
-              ? 'text-grid-text hover:bg-gray-100'
-              : 'text-gray-300 cursor-not-allowed'
-          )}
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-          title="Previous page"
-        >
-          &#8249;
-        </button>
+      <div className="flex items-center gap-0.5">
+        <NavButton disabled={!table.getCanPreviousPage()} onClick={() => table.setPageIndex(0)} title="First page">&#171;</NavButton>
+        <NavButton disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()} title="Previous page">&#8249;</NavButton>
 
         {/* Page numbers */}
         {Array.from({ length: Math.min(pageCount, 7) }, (_, i) => {
@@ -79,15 +72,12 @@ export function Pagination<TData>({ table, pageSizeOptions }: PaginationProps<TD
           } else {
             pageNum = currentPage - 3 + i;
           }
+          const active = pageNum === currentPage;
           return (
             <button
               key={pageNum}
-              className={clsx(
-                'min-w-[28px] rounded px-1.5 py-1 text-grid-sm',
-                pageNum === currentPage
-                  ? 'bg-grid-accent text-white font-medium'
-                  : 'text-grid-text hover:bg-gray-100'
-              )}
+              className={clsx('h-[26px] min-w-[26px] rounded-md px-1 text-grid-sm tabular-nums transition-colors duration-100', !active && 'text-grid-text hover:bg-grid-row-hover')}
+              style={active ? { backgroundColor: 'var(--jt-grid-accent-light)', color: 'var(--jt-grid-accent)', fontWeight: 600 } : undefined}
               onClick={() => table.setPageIndex(pageNum)}
             >
               {pageNum + 1}
@@ -95,32 +85,8 @@ export function Pagination<TData>({ table, pageSizeOptions }: PaginationProps<TD
           );
         })}
 
-        <button
-          className={clsx(
-            'rounded px-2 py-1 text-grid-sm',
-            table.getCanNextPage()
-              ? 'text-grid-text hover:bg-gray-100'
-              : 'text-gray-300 cursor-not-allowed'
-          )}
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-          title="Next page"
-        >
-          &#8250;
-        </button>
-        <button
-          className={clsx(
-            'rounded px-2 py-1 text-grid-sm',
-            table.getCanNextPage()
-              ? 'text-grid-text hover:bg-gray-100'
-              : 'text-gray-300 cursor-not-allowed'
-          )}
-          onClick={() => table.setPageIndex(pageCount - 1)}
-          disabled={!table.getCanNextPage()}
-          title="Last page"
-        >
-          &#187;
-        </button>
+        <NavButton disabled={!table.getCanNextPage()} onClick={() => table.nextPage()} title="Next page">&#8250;</NavButton>
+        <NavButton disabled={!table.getCanNextPage()} onClick={() => table.setPageIndex(pageCount - 1)} title="Last page">&#187;</NavButton>
       </div>
     </div>
   );
