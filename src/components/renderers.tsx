@@ -224,19 +224,8 @@ export function renderTypedCell(dataType: ColumnDataType, value: any, formattedV
   }
 }
 
-/** Format a typed value for plain-text display (currency/percent prefixes etc.) */
-export function formatTypedValue(dataType: ColumnDataType | undefined, value: any, decimals?: number): string | null {
-  if (dataType == null || value == null || value === '' || isNaN(Number(value))) return null;
-  const n = Number(value);
-  switch (dataType) {
-    case 'currency':
-      return `$${n.toLocaleString('en-US', { minimumFractionDigits: decimals ?? 2, maximumFractionDigits: decimals ?? 2 })}`;
-    case 'percent':
-      return `${n.toLocaleString('en-US', { minimumFractionDigits: decimals ?? 0, maximumFractionDigits: decimals ?? 1 })}%`;
-    default:
-      return null;
-  }
-}
+// Plain-text typed formatting now lives in the dataType registry
+export { formatTypedValue } from '../core/dataTypeRegistry';
 
 // ─── Sparklines (inline SVG for array values) ────────────────────────
 

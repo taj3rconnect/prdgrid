@@ -66,7 +66,7 @@ export type {
   GridApi,
   GridRowNode,
   PersistedGridState,
-  ColumnMeta,
+  PersistedUiState,
 
   // Export
   CsvExportParams,
@@ -81,7 +81,7 @@ export { LOOK_PRESETS, LOOKS, ACCENTS, resolveAppearance } from './styles/themes
 
 // ─── Charts & renderers (for programmatic use) ───
 export { buildChartData, aggregate } from './charts/aggregate';
-export { Sparkline, Chip, FieldTypeIcon } from './components/renderers';
+export { Sparkline, FieldTypeIcon } from './components/renderers';
 export { TypeaheadSelect } from './components/TypeaheadSelect';
 export type { TypeaheadOption } from './components/TypeaheadSelect';
 

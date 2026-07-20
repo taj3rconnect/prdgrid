@@ -197,7 +197,7 @@ export interface CellClassParams<TData = any> {
   rowIndex: number;
 }
 
-export interface CellStyleParams<TData = any> extends CellClassParams<TData> {}
+export type CellStyleParams<TData = any> = CellClassParams<TData>;
 
 export interface EditableParams<TData = any> {
   data: TData;
@@ -353,7 +353,9 @@ export interface GridApi<TData = any> {
   deselectAll(): void;
 
   // Editing
+  /** @deprecated No-op — editing state lives inside cells; kept for vendored-consumer compatibility */
   startEditingCell(rowIndex: number, colId: string): void;
+  /** @deprecated No-op — editing state lives inside cells; kept for vendored-consumer compatibility */
   stopEditing(cancel?: boolean): void;
 
   // Export
@@ -368,6 +370,7 @@ export interface GridApi<TData = any> {
   resetState(): void;
 
   // Misc
+  /** @deprecated No-op — rows re-render reactively from rowData; kept for vendored-consumer compatibility */
   refreshCells(): void;
   ensureRowVisible(rowIndex: number): void;
 }
@@ -417,8 +420,18 @@ export interface ScheduleExportParams extends EmailExportParams {
 
 // ─── Persisted State ─────────────────────────────────────────────────
 
+/** Appearance/chart UI state persisted alongside grid state (schema v3+). */
+export interface PersistedUiState {
+  version?: number;
+  look?: GridLook;
+  accent?: AccentTheme;
+  charts?: ChartConfig[];
+  styleSettings?: GridStyleSettings;
+  showFloatingFilters?: boolean;
+}
+
 export interface PersistedGridState {
-  /** Schema version (2 = current; absent = legacy v1, accepted and upgraded on next save) */
+  /** Schema version (3 = current, adds `ui`; 2 = grid-only; absent = legacy v1, upgraded on next save) */
   version?: number;
   /** Persisted density */
   density?: GridDensity;
@@ -435,6 +448,8 @@ export interface PersistedGridState {
   columnDecimals?: Record<string, number>;
   /** User-configured column alignment overrides */
   columnAlignment?: Record<string, 'left' | 'center' | 'right'>;
+  /** Appearance/chart UI state (schema v3+) */
+  ui?: PersistedUiState;
 }
 
 // ─── Toolbar Config ──────────────────────────────────────────────────
@@ -604,6 +619,11 @@ export interface DataGridProps<TData = any> {
   gridType?: GridType;
   /** Enable row grouping (available for all grid types) */
   enableRowGroup?: boolean;
+  /**
+   * Regex marking field/header names as money-amount columns (auto right-align
+   * + numeric formatting). Defaults to the built-in AMOUNT_FIELD_PATTERN.
+   */
+  amountFieldPattern?: RegExp;
   /** Unique grid ID for state persistence */
   gridId?: string;
   /** Row data array */

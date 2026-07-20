@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { clsx } from 'clsx';
 import { useGridEngine } from '../core/useGridEngine';
+import { loadUiState, saveUiState } from '../core/persistence';
 import { sortingToEntries, entriesToSorting, filtersToRecord, recordToFilters } from '../core/gridUtils';
 import { resolveAppearance } from '../styles/themes';
 import { GridToolbar } from './GridToolbar';
@@ -27,7 +28,6 @@ import type {
   GridView,
   GridAppearance,
   GridLook,
-  AccentTheme,
   ChartConfig,
   ToolbarConfig,
   GridApi,
@@ -83,37 +83,6 @@ const GRID_TYPE_DEFAULTS: Record<GridType, Partial<DataGridProps<any>>> = {
     toolbar: true,
   },
 };
-
-// ─── UI-state persistence (appearance + charts), separate from grid data state ──
-interface PersistedUiState {
-  version: number;
-  look?: GridLook;
-  accent?: AccentTheme;
-  charts?: ChartConfig[];
-  styleSettings?: GridStyleSettings;
-  showFloatingFilters?: boolean;
-}
-
-function loadUiState(gridId?: string): PersistedUiState | null {
-  if (!gridId) return null;
-  try {
-    const raw = localStorage.getItem(`jt-grid-${gridId}-ui`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || (parsed.version && parsed.version > 1)) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function saveUiState(gridId: string, state: PersistedUiState): void {
-  try {
-    localStorage.setItem(`jt-grid-${gridId}-ui`, JSON.stringify(state));
-  } catch {
-    // localStorage full or unavailable
-  }
-}
 
 function DataGridInner<TData = any>(
   props: DataGridProps<TData>,
@@ -235,7 +204,6 @@ function DataGridInner<TData = any>(
     if (!persistSettings || !gridId) return;
     const timer = setTimeout(() => {
       saveUiState(gridId, {
-        version: 1,
         look: appearance.look,
         accent: appearance.accent,
         charts: chartConfigs,
