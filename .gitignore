@@ -6,3 +6,6 @@ dist/
 docs/
 .vercel
 .gstack/
+
+.playwright-mcp/
+*.png
