@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { flexRender, Header } from '@tanstack/react-table';
 import { clsx } from 'clsx';
 import { FieldTypeIcon } from './renderers';
+import { isNumericDataType } from '../core/dataTypeRegistry';
 import type { ColumnMeta } from '../types';
 
 interface HeaderCellProps<TData> {
@@ -25,6 +26,13 @@ export function HeaderCell<TData>({
 }: HeaderCellProps<TData>) {
   const column = header.column;
   const meta = column.columnDef.meta as ColumnMeta<TData> | undefined;
+  // House rule: number/amount/percent HEADERS right-align to match their data.
+  // Fall back to right for numeric columns (number filter or numeric dataType)
+  // when no explicit alignment was resolved, so headers never drift left of
+  // right-aligned values.
+  const effAlign: 'left' | 'center' | 'right' | undefined =
+    alignment ??
+    ((meta?.colDef?.filter === 'number' || isNumericDataType(meta?.dataType)) ? 'right' : undefined);
   const canSort = column.getCanSort();
   const sorted = column.getIsSorted();
   const canGroup = column.getCanGroup();
@@ -60,7 +68,7 @@ export function HeaderCell<TData>({
         width: header.getSize(),
         minWidth: column.columnDef.minSize,
         maxWidth: column.columnDef.maxSize,
-        textAlign: alignment,
+        textAlign: effAlign,
         boxShadow: isDragTarget ? 'inset 2px 0 0 var(--jt-grid-accent)' : undefined,
         ...pinStyle,
       }}
@@ -87,8 +95,8 @@ export function HeaderCell<TData>({
       <div
         className={clsx(
           'flex h-full items-center gap-1.5',
-          alignment === 'right' && 'justify-end',
-          alignment === 'center' && 'justify-center'
+          effAlign === 'right' && 'justify-end',
+          effAlign === 'center' && 'justify-center'
         )}
         onClick={handleSort}
       >

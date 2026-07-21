@@ -61,7 +61,9 @@ const GRID_TYPE_DEFAULTS: Record<GridType, Partial<DataGridProps<any>>> = {
     rowSelection: false,
     floatingFilters: true,
     statusBar: true,
-    gridLook: 'dense',
+    // NOTE: intentionally NO gridLook here — a light look ('dense') would override
+    // the theme='dark' -> 'midnight' mapping and force finance grids light in a dark
+    // host app. Let `theme` drive the look; compactness comes from density:'compact'.
     toolbar: { search: true, columnManager: true, export: { csv: true, excel: true }, density: true, charts: true, themeSwitcher: true },
   },
   editable: {

@@ -3040,18 +3040,18 @@ function $t({ value: e, columnMax: t, children: n }) {
 //#endregion
 //#region src/components/HeaderCell.tsx
 function en({ header: e, alignment: t, onDragStart: n, onDragOver: r, onDragEnd: i, isDragTarget: a, onHeaderContextMenu: o }) {
-	let s = e.column, c = s.columnDef.meta, l = s.getCanSort(), u = s.getIsSorted(), d = s.getCanGroup(), f = s.getIsGrouped(), m = s.getIsPinned(), h = p((e) => {
-		l && s.toggleSorting(void 0, e.shiftKey);
-	}, [l, s]), g = s.getSortIndex(), _ = {};
-	return m === "left" && (_.left = s.getStart("left")), m === "right" && (_.right = s.getAfter("right")), /* @__PURE__ */ x("th", {
-		className: w("jt-header-cell group", "relative select-none text-left", l && "cursor-pointer", m && "sticky z-10 jt-cell-pinned", m === "left" && s.getIsLastColumn("left") && "jt-cell-pinned-edge-left", m === "right" && s.getIsFirstColumn("right") && "jt-cell-pinned-edge-right", f && "!bg-grid-accent-light"),
+	let s = e.column, c = s.columnDef.meta, l = t ?? (c?.colDef?.filter === "number" || ct(c?.dataType) ? "right" : void 0), u = s.getCanSort(), d = s.getIsSorted(), f = s.getCanGroup(), m = s.getIsGrouped(), h = s.getIsPinned(), g = p((e) => {
+		u && s.toggleSorting(void 0, e.shiftKey);
+	}, [u, s]), _ = s.getSortIndex(), v = {};
+	return h === "left" && (v.left = s.getStart("left")), h === "right" && (v.right = s.getAfter("right")), /* @__PURE__ */ x("th", {
+		className: w("jt-header-cell group", "relative select-none text-left", u && "cursor-pointer", h && "sticky z-10 jt-cell-pinned", h === "left" && s.getIsLastColumn("left") && "jt-cell-pinned-edge-left", h === "right" && s.getIsFirstColumn("right") && "jt-cell-pinned-edge-right", m && "!bg-grid-accent-light"),
 		style: {
 			width: e.getSize(),
 			minWidth: s.columnDef.minSize,
 			maxWidth: s.columnDef.maxSize,
-			textAlign: t,
+			textAlign: l,
 			boxShadow: a ? "inset 2px 0 0 var(--jt-grid-accent)" : void 0,
-			..._
+			...v
 		},
 		title: c?.headerTooltip,
 		draggable: !c?.colDef?.suppressMovable,
@@ -3068,15 +3068,15 @@ function en({ header: e, alignment: t, onDragStart: n, onDragOver: r, onDragEnd:
 			o && (e.preventDefault(), o(s.id, e.clientX, e.clientY));
 		},
 		children: [/* @__PURE__ */ x("div", {
-			className: w("flex h-full items-center gap-1.5", t === "right" && "justify-end", t === "center" && "justify-center"),
-			onClick: h,
+			className: w("flex h-full items-center gap-1.5", l === "right" && "justify-end", l === "center" && "justify-center"),
+			onClick: g,
 			children: [
 				/* @__PURE__ */ b(Ht, { dataType: c?.dataType }),
 				/* @__PURE__ */ b("span", {
 					className: "min-w-0 truncate",
 					children: e.isPlaceholder ? null : nt(s.columnDef.header, e.getContext())
 				}),
-				u && /* @__PURE__ */ x("span", {
+				d && /* @__PURE__ */ x("span", {
 					className: "flex shrink-0 items-center",
 					style: { color: "var(--jt-grid-accent)" },
 					children: [/* @__PURE__ */ b("svg", {
@@ -3089,21 +3089,21 @@ function en({ header: e, alignment: t, onDragStart: n, onDragOver: r, onDragEnd:
 						strokeLinecap: "round",
 						strokeLinejoin: "round",
 						"aria-hidden": !0,
-						children: u === "asc" ? /* @__PURE__ */ b("path", { d: "M4 10l4-4 4 4" }) : /* @__PURE__ */ b("path", { d: "M4 6l4 4 4-4" })
-					}), g !== void 0 && g > 0 && /* @__PURE__ */ b("sup", {
+						children: d === "asc" ? /* @__PURE__ */ b("path", { d: "M4 10l4-4 4 4" }) : /* @__PURE__ */ b("path", { d: "M4 6l4 4 4-4" })
+					}), _ !== void 0 && _ > 0 && /* @__PURE__ */ b("sup", {
 						className: "ml-0.5 text-[8px] font-semibold",
-						children: g + 1
+						children: _ + 1
 					})]
 				}),
 				/* @__PURE__ */ b("span", { className: "flex-1" }),
-				d && /* @__PURE__ */ b("button", {
-					className: w("flex h-4 w-4 shrink-0 items-center justify-center rounded transition-opacity duration-100", f ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-100 text-grid-header-icon hover:text-grid-accent"),
-					style: f ? { backgroundColor: "var(--jt-grid-accent)" } : void 0,
+				f && /* @__PURE__ */ b("button", {
+					className: w("flex h-4 w-4 shrink-0 items-center justify-center rounded transition-opacity duration-100", m ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-100 text-grid-header-icon hover:text-grid-accent"),
+					style: m ? { backgroundColor: "var(--jt-grid-accent)" } : void 0,
 					onClick: (e) => {
 						e.stopPropagation(), s.toggleGrouping();
 					},
-					title: f ? "Ungroup" : "Group by this column",
-					"aria-label": f ? "Ungroup" : "Group by this column",
+					title: m ? "Ungroup" : "Group by this column",
+					"aria-label": m ? "Ungroup" : "Group by this column",
 					children: /* @__PURE__ */ b("svg", {
 						width: "11",
 						height: "11",
@@ -5694,7 +5694,6 @@ var or = {
 		rowSelection: !1,
 		floatingFilters: !0,
 		statusBar: !0,
-		gridLook: "dense",
 		toolbar: {
 			search: !0,
 			columnManager: !0,
