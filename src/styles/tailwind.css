@@ -1,0 +1,8 @@
+/* DEMO-ONLY Tailwind entry. This emits the utility layer the grid's inline
+   classes need, plus the grid tokens from the legacy config. It is imported by
+   demo/main.tsx so the standalone demo is fully styled WITHOUT bundling a global
+   utility dump into the shipped package (see styles/datagrid.css for why the
+   shipped CSS must stay utility-free). Consuming apps generate these utilities
+   with their OWN Tailwind instead. */
+@import "tailwindcss/utilities" layer(utilities);
+@config "../../tailwind.config.ts";

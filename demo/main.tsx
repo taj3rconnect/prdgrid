@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
+import '../src/styles/tailwind.css';
 import '../src/styles/datagrid.css';
 import { AvatarMenu } from './AvatarMenu';
 import { OverviewDemo } from './tabs/OverviewDemo';
