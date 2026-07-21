@@ -1,0 +1,1 @@
+{"version":3,"file":"StatusBar.d.ts","sourceRoot":"","sources":["../../src/components/StatusBar.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,EAAE,MAAM,uBAAuB,CAAC;AAE9C,UAAU,cAAc,CAAC,KAAK;IAC5B,KAAK,EAAE,KAAK,CAAC,KAAK,CAAC,CAAC;CACrB;AAED,wBAAgB,SAAS,CAAC,KAAK,EAAE,EAAE,KAAK,EAAE,EAAE,cAAc,CAAC,KAAK,CAAC,+BA0BhE"}

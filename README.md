@@ -4,7 +4,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)]()
-[![React 18+](https://img.shields.io/badge/React-18%2B-61dafb.svg)]()
+[![React 19](https://img.shields.io/badge/React-19-61dafb.svg)]()
 [![TanStack Table v8](https://img.shields.io/badge/TanStack_Table-v8-orange.svg)]()
 
 A full-featured, open-source React data grid built on [TanStack Table v8](https://tanstack.com/table/v8) and [Tailwind CSS](https://tailwindcss.com). Sorting, filtering, grouping, cell editing, multi-format export, theming, and a complete imperative API — all in one component.
@@ -34,7 +34,39 @@ Built by [Taj Haslani](https://github.com/taj3rconnect) for [JobTalk.ai](https:/
 npm install @jobtalk/datagrid
 ```
 
-Peer dependencies: `react >= 18`, `react-dom >= 18`
+Peer dependencies: `react >= 18` (tested on 19), `react-dom >= 18`
+
+### Consume as a git submodule (zero-config, no registry)
+
+This repo is private and not published to npm, so consuming apps add it as a git
+submodule and import the **prebuilt `dist/`** (committed in-repo). The `dist/` bundle
+inlines every dependency except React and ships a **self-contained `dist/index.css`**
+(all utilities compiled to plain CSS, no Tailwind base/preflight) — so the host app
+needs **no Tailwind config, no theme tokens, and no extra dependencies**. Works the
+same under any host stack (Tailwind 3/4 or none).
+
+```bash
+# in the consuming app
+git submodule add https://github.com/taj3rconnect/prdgrid.git src/vendor/prdgrid
+```
+
+Point an alias at the built entry (Vite example):
+
+```ts
+// vite.config.ts
+resolve: { alias: { '@prdgrid': resolve(__dirname, 'src/vendor/prdgrid/dist/index.js') } }
+// tsconfig paths: "@prdgrid": ["./src/vendor/prdgrid/dist/index.d.ts"], "@prdgrid/*": ["./src/vendor/prdgrid/dist/*"]
+```
+
+```tsx
+import { DataGrid } from '@prdgrid';
+import '@prdgrid/index.css';
+```
+
+**Getting upstream updates into an app's next release:** in the app, run
+`git submodule update --remote src/vendor/prdgrid` (pulls latest `master`, incl. the
+rebuilt `dist/`), commit the bumped pointer, and ship. After changing this repo's
+source, always `npm run build` and commit `dist/` so consumers pick the change up.
 
 ### Basic Usage
 

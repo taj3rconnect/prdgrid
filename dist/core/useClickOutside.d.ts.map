@@ -1,0 +1,1 @@
+{"version":3,"file":"useClickOutside.d.ts","sourceRoot":"","sources":["../../src/core/useClickOutside.ts"],"names":[],"mappings":"AAAA,OAAO,EAAa,KAAK,SAAS,EAAE,MAAM,OAAO,CAAC;AAElD;;;GAGG;AACH,wBAAgB,eAAe,CAC7B,GAAG,EAAE,SAAS,CAAC,WAAW,GAAG,IAAI,CAAC,EAClC,SAAS,EAAE,MAAM,IAAI,EACrB,OAAO,CAAC,EAAE;IAAE,OAAO,CAAC,EAAE,OAAO,CAAC;IAAC,MAAM,CAAC,EAAE,OAAO,CAAA;CAAE,QAmBlD"}

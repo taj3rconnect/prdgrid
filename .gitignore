@@ -1,5 +1,8 @@
 node_modules/
-dist/
+# dist/ is intentionally COMMITTED: this package is consumed by apps as a git
+# submodule (no npm registry), so the prebuilt, self-contained bundle must ship
+# in-repo for zero-config, zero-build drop-in. Rebuild (`npm run build`) + commit
+# dist on every source change so consuming apps pick it up on their next release.
 *.tsbuildinfo
 .claude/
 

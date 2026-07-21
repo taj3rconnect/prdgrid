@@ -8,7 +8,11 @@ export default defineConfig({
     react(),
     dts({
       include: ['src'],
-      rollupTypes: true,
+      // Per-file declarations (not api-extractor rollup): rollupTypes:true crashes
+      // under TS7 (@microsoft/api-extractor "Unable to follow symbol for RegExp").
+      // Per-file .d.ts is robust and still fully typed for consumers.
+      rollupTypes: false,
+      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     }),
   ],
   build: {

@@ -1,0 +1,1 @@
+{"version":3,"file":"Pagination.d.ts","sourceRoot":"","sources":["../../src/components/Pagination.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,EAAE,MAAM,uBAAuB,CAAC;AAI9C,UAAU,eAAe,CAAC,KAAK;IAC7B,KAAK,EAAE,KAAK,CAAC,KAAK,CAAC,CAAC;IACpB,eAAe,EAAE,MAAM,EAAE,CAAC;CAC3B;AAgBD,wBAAgB,UAAU,CAAC,KAAK,EAAE,EAAE,KAAK,EAAE,eAAe,EAAE,EAAE,eAAe,CAAC,KAAK,CAAC,+BAkEnF"}

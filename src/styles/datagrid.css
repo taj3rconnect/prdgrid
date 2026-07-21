@@ -1,5 +1,10 @@
-@tailwind components;
-@tailwind utilities;
+/* Tailwind 4: utilities only (no preflight/base) so the grid never resets the
+   host app. The grid's custom `grid-*` tokens + `content` globs + darkMode:'class'
+   come from the legacy JS config, loaded here via @config. When this file is built
+   by the lib pipeline (cssCodeSplit:false), these utilities are compiled to plain
+   CSS in dist/style.css — so consuming apps need NO Tailwind setup of their own. */
+@import "tailwindcss/utilities" layer(utilities);
+@config "../../tailwind.config.ts";
 
 /* ─── CSS Custom Property Defaults — "airtable" look, light, blue accent ─── */
 .jt-datagrid {
