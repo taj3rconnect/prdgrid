@@ -3095,7 +3095,7 @@ function en({ header: e, alignment: t, onDragStart: n, onDragOver: r, onDragEnd:
 						children: _ + 1
 					})]
 				}),
-				/* @__PURE__ */ b("span", { className: "flex-1" }),
+				l !== "right" && l !== "center" && /* @__PURE__ */ b("span", { className: "flex-1" }),
 				f && /* @__PURE__ */ b("button", {
 					className: w("flex h-4 w-4 shrink-0 items-center justify-center rounded transition-opacity duration-100", m ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-100 text-grid-header-icon hover:text-grid-accent"),
 					style: m ? { backgroundColor: "var(--jt-grid-accent)" } : void 0,

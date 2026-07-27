@@ -120,7 +120,14 @@ export function HeaderCell<TData>({
           </span>
         )}
 
-        <span className="flex-1" />
+        {/*
+          Spacer pushes the group toggle to the trailing edge — but `flex-1`
+          grows to absorb ALL free space, which leaves `justify-end`/`center`
+          nothing to distribute and pins the label left. Only emit it when the
+          label is genuinely left-aligned. (House rule: numeric headers must
+          right-align to match their values.)
+        */}
+        {effAlign !== 'right' && effAlign !== 'center' && <span className="flex-1" />}
 
         {/* Group toggle — appears on hover (or stays when grouped) */}
         {canGroup && (
