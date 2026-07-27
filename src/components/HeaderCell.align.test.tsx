@@ -97,4 +97,39 @@ describe('numeric column headers right-align by default', () => {
       expect(spacers.length, `${name} header must not contain a flex-1 spacer`).toBe(0);
     }
   });
+
+  /**
+   * The second half of the same defect: the group-toggle button trails the label
+   * in DOM order and is only `opacity-0` when idle — it still occupies ~27px of
+   * layout, so `justify-end` ends the ROW at the content edge while the LABEL
+   * stops 27px short of it. Measured in a real browser before the fix:
+   * data text right = 1914.96, header label right = 1888.34.
+   *
+   * Nothing may be laid out after the label in a right-aligned header, so every
+   * following sibling must be pulled ahead of it with a negative flex `order`.
+   */
+  it('lays nothing out after the label in a right-aligned header', () => {
+    render(<DataGrid rowData={rows} columnDefs={columns} />);
+    for (const name of NUMERIC_HEADERS) {
+      const row = headerRow(name);
+      const label = Array.from(row.children).find((el) => el.textContent?.trim() === name);
+      expect(label, `${name} label span`).toBeTruthy();
+      const trailing = Array.from(row.children).slice(Array.from(row.children).indexOf(label!) + 1);
+      for (const el of trailing) {
+        const order = Number((el as HTMLElement).style.order);
+        expect(order, `${name}: <${el.tagName.toLowerCase()}> after the label must have a negative order`)
+          .toBeLessThan(0);
+      }
+    }
+  });
+
+  it('keeps the trailing decorations after the label in a LEFT-aligned header', () => {
+    render(<DataGrid rowData={rows} columnDefs={columns} />);
+    for (const name of TEXT_HEADERS) {
+      const row = headerRow(name);
+      for (const el of Array.from(row.children)) {
+        expect((el as HTMLElement).style.order, `${name} must not re-order`).toBe('');
+      }
+    }
+  });
 });

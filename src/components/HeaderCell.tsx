@@ -33,6 +33,14 @@ export function HeaderCell<TData>({
   const effAlign: 'left' | 'center' | 'right' | undefined =
     alignment ??
     ((meta?.colDef?.filter === 'number' || isNumericDataType(meta?.dataType)) ? 'right' : undefined);
+  // Right-aligned headers must end flush with their values. The sort indicator
+  // and the group toggle trail the label in DOM order, and the group toggle is
+  // only `opacity-0` when idle — it still occupies ~27px of layout, pushing the
+  // label that far left of the data's right edge. Re-order them AHEAD of the
+  // label (flex `order`) so nothing sits between the label and the content edge.
+  const isRight = effAlign === 'right';
+  const sortLead: React.CSSProperties | undefined = isRight ? { order: -1 } : undefined;
+  const groupLead: React.CSSProperties | undefined = isRight ? { order: -2 } : undefined;
   const canSort = column.getCanSort();
   const sorted = column.getIsSorted();
   const canGroup = column.getCanGroup();
@@ -110,7 +118,7 @@ export function HeaderCell<TData>({
 
         {/* Sort indicator */}
         {sorted && (
-          <span className="flex shrink-0 items-center" style={{ color: 'var(--jt-grid-accent)' }}>
+          <span className="flex shrink-0 items-center" style={{ color: 'var(--jt-grid-accent)', ...sortLead }}>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               {sorted === 'asc' ? <path d="M4 10l4-4 4 4" /> : <path d="M4 6l4 4 4-4" />}
             </svg>
@@ -133,12 +141,12 @@ export function HeaderCell<TData>({
         {canGroup && (
           <button
             className={clsx(
-              'flex h-4 w-4 shrink-0 items-center justify-center rounded transition-opacity duration-100',
+              'flex h-4 w-4 shrink-0 items-center justify-center rounded bg-transparent transition-opacity duration-100',
               isGrouped
                 ? 'opacity-100 text-white'
                 : 'opacity-0 group-hover:opacity-100 text-grid-header-icon hover:text-grid-accent'
             )}
-            style={isGrouped ? { backgroundColor: 'var(--jt-grid-accent)' } : undefined}
+            style={isGrouped ? { backgroundColor: 'var(--jt-grid-accent)', ...groupLead } : groupLead}
             onClick={(e) => {
               e.stopPropagation();
               column.toggleGrouping();

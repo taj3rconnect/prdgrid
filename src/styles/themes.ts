@@ -48,6 +48,9 @@ export const LOOK_PRESETS: Record<GridLook, TokenMap> = {
     '--jt-grid-border-strong': '#30363d',
     '--jt-grid-header-bg': '#161b22',
     '--jt-grid-header-text': '#e6edf3',
+    // MUST be overridden for dark: the light base is #eef1f5, which paints a
+    // near-white header on hover/click under light header text — unreadable.
+    '--jt-grid-header-hover': '#1f2630',
     '--jt-grid-header-icon': '#6e7681',
     '--jt-grid-text': '#d1d5db',
     '--jt-grid-text-secondary': '#8b949e',

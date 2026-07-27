@@ -2096,6 +2096,7 @@ var kt = {
 		"--jt-grid-border-strong": "#30363d",
 		"--jt-grid-header-bg": "#161b22",
 		"--jt-grid-header-text": "#e6edf3",
+		"--jt-grid-header-hover": "#1f2630",
 		"--jt-grid-header-icon": "#6e7681",
 		"--jt-grid-text": "#d1d5db",
 		"--jt-grid-text-secondary": "#8b949e",
@@ -3040,18 +3041,18 @@ function $t({ value: e, columnMax: t, children: n }) {
 //#endregion
 //#region src/components/HeaderCell.tsx
 function en({ header: e, alignment: t, onDragStart: n, onDragOver: r, onDragEnd: i, isDragTarget: a, onHeaderContextMenu: o }) {
-	let s = e.column, c = s.columnDef.meta, l = t ?? (c?.colDef?.filter === "number" || ct(c?.dataType) ? "right" : void 0), u = s.getCanSort(), d = s.getIsSorted(), f = s.getCanGroup(), m = s.getIsGrouped(), h = s.getIsPinned(), g = p((e) => {
-		u && s.toggleSorting(void 0, e.shiftKey);
-	}, [u, s]), _ = s.getSortIndex(), v = {};
-	return h === "left" && (v.left = s.getStart("left")), h === "right" && (v.right = s.getAfter("right")), /* @__PURE__ */ x("th", {
-		className: w("jt-header-cell group", "relative select-none text-left", u && "cursor-pointer", h && "sticky z-10 jt-cell-pinned", h === "left" && s.getIsLastColumn("left") && "jt-cell-pinned-edge-left", h === "right" && s.getIsFirstColumn("right") && "jt-cell-pinned-edge-right", m && "!bg-grid-accent-light"),
+	let s = e.column, c = s.columnDef.meta, l = t ?? (c?.colDef?.filter === "number" || ct(c?.dataType) ? "right" : void 0), u = l === "right", d = u ? { order: -1 } : void 0, f = u ? { order: -2 } : void 0, m = s.getCanSort(), h = s.getIsSorted(), g = s.getCanGroup(), _ = s.getIsGrouped(), v = s.getIsPinned(), y = p((e) => {
+		m && s.toggleSorting(void 0, e.shiftKey);
+	}, [m, s]), S = s.getSortIndex(), C = {};
+	return v === "left" && (C.left = s.getStart("left")), v === "right" && (C.right = s.getAfter("right")), /* @__PURE__ */ x("th", {
+		className: w("jt-header-cell group", "relative select-none text-left", m && "cursor-pointer", v && "sticky z-10 jt-cell-pinned", v === "left" && s.getIsLastColumn("left") && "jt-cell-pinned-edge-left", v === "right" && s.getIsFirstColumn("right") && "jt-cell-pinned-edge-right", _ && "!bg-grid-accent-light"),
 		style: {
 			width: e.getSize(),
 			minWidth: s.columnDef.minSize,
 			maxWidth: s.columnDef.maxSize,
 			textAlign: l,
 			boxShadow: a ? "inset 2px 0 0 var(--jt-grid-accent)" : void 0,
-			...v
+			...C
 		},
 		title: c?.headerTooltip,
 		draggable: !c?.colDef?.suppressMovable,
@@ -3069,16 +3070,19 @@ function en({ header: e, alignment: t, onDragStart: n, onDragOver: r, onDragEnd:
 		},
 		children: [/* @__PURE__ */ x("div", {
 			className: w("flex h-full items-center gap-1.5", l === "right" && "justify-end", l === "center" && "justify-center"),
-			onClick: g,
+			onClick: y,
 			children: [
 				/* @__PURE__ */ b(Ht, { dataType: c?.dataType }),
 				/* @__PURE__ */ b("span", {
 					className: "min-w-0 truncate",
 					children: e.isPlaceholder ? null : nt(s.columnDef.header, e.getContext())
 				}),
-				d && /* @__PURE__ */ x("span", {
+				h && /* @__PURE__ */ x("span", {
 					className: "flex shrink-0 items-center",
-					style: { color: "var(--jt-grid-accent)" },
+					style: {
+						color: "var(--jt-grid-accent)",
+						...d
+					},
 					children: [/* @__PURE__ */ b("svg", {
 						width: "12",
 						height: "12",
@@ -3089,21 +3093,24 @@ function en({ header: e, alignment: t, onDragStart: n, onDragOver: r, onDragEnd:
 						strokeLinecap: "round",
 						strokeLinejoin: "round",
 						"aria-hidden": !0,
-						children: d === "asc" ? /* @__PURE__ */ b("path", { d: "M4 10l4-4 4 4" }) : /* @__PURE__ */ b("path", { d: "M4 6l4 4 4-4" })
-					}), _ !== void 0 && _ > 0 && /* @__PURE__ */ b("sup", {
+						children: h === "asc" ? /* @__PURE__ */ b("path", { d: "M4 10l4-4 4 4" }) : /* @__PURE__ */ b("path", { d: "M4 6l4 4 4-4" })
+					}), S !== void 0 && S > 0 && /* @__PURE__ */ b("sup", {
 						className: "ml-0.5 text-[8px] font-semibold",
-						children: _ + 1
+						children: S + 1
 					})]
 				}),
 				l !== "right" && l !== "center" && /* @__PURE__ */ b("span", { className: "flex-1" }),
-				f && /* @__PURE__ */ b("button", {
-					className: w("flex h-4 w-4 shrink-0 items-center justify-center rounded transition-opacity duration-100", m ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-100 text-grid-header-icon hover:text-grid-accent"),
-					style: m ? { backgroundColor: "var(--jt-grid-accent)" } : void 0,
+				g && /* @__PURE__ */ b("button", {
+					className: w("flex h-4 w-4 shrink-0 items-center justify-center rounded bg-transparent transition-opacity duration-100", _ ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-100 text-grid-header-icon hover:text-grid-accent"),
+					style: _ ? {
+						backgroundColor: "var(--jt-grid-accent)",
+						...f
+					} : f,
 					onClick: (e) => {
 						e.stopPropagation(), s.toggleGrouping();
 					},
-					title: m ? "Ungroup" : "Group by this column",
-					"aria-label": m ? "Ungroup" : "Group by this column",
+					title: _ ? "Ungroup" : "Group by this column",
+					"aria-label": _ ? "Ungroup" : "Group by this column",
 					children: /* @__PURE__ */ b("svg", {
 						width: "11",
 						height: "11",

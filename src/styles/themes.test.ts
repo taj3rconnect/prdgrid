@@ -15,6 +15,24 @@ describe('resolveAppearance', () => {
     expect(style['--jt-grid-menu-bg']).toBe('#1c2128');
   });
 
+  // Regression: the light base sets --jt-grid-header-hover: #eef1f5. A dark look
+  // that forgets to override it paints a near-white header on hover/click under
+  // light header text, making the label unreadable.
+  it('every dark look overrides the light header-hover token', () => {
+    for (const { value: look } of LOOKS) {
+      const { style, isDark } = resolveAppearance({ look, accent: 'blue', density: 'normal' });
+      if (!isDark) continue;
+      const hover = style['--jt-grid-header-hover'];
+      expect(hover, `${look} must set --jt-grid-header-hover`).toBeTruthy();
+      expect(hover, `${look} header-hover must not be the light base`).not.toBe('#eef1f5');
+      // Dark = low luminance. Parse #rrggbb and require every channel to be dim.
+      const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hover!);
+      expect(m, `${look} header-hover must be a hex colour`).toBeTruthy();
+      const max = Math.max(...m!.slice(1).map((h) => parseInt(h, 16)));
+      expect(max, `${look} header-hover must be dark`).toBeLessThan(0x60);
+    }
+  });
+
   it('accent tokens compose with any look', () => {
     const { style } = resolveAppearance({ look: 'airtable', accent: 'violet', density: 'normal' });
     expect(style['--jt-grid-accent']).toBe('#7a5af8');
